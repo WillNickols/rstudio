@@ -800,6 +800,12 @@ public interface CmdConstants extends Constants {
     @DefaultStringValue("Zoom _Tutorial") // $NON-NLS-1$
     String layoutZoomTutorialMenuLabel();
     
+    // layoutZoomAI
+    @DefaultStringValue("Zoom AI") // $NON-NLS-1$
+    String layoutZoomAILabel();
+    @DefaultStringValue("Zoom _k AI") // $NON-NLS-1$
+    String layoutZoomAIMenuLabel();
+    
     // layoutZoomBuild
     @DefaultStringValue("Zoom Build") // $NON-NLS-1$
     String layoutZoomBuildLabel();

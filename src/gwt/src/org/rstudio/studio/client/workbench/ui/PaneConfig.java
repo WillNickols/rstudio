@@ -66,6 +66,7 @@ public class PaneConfig extends UserPrefsAccessor.Panes
       tabSet1.push(PaneManager.BUILD_PANE);
       tabSet1.push(PaneManager.VCS_PANE);
       tabSet1.push(PaneManager.TUTORIAL_PANE);
+      tabSet1.push(PaneManager.AI_PANE);
       tabSet1.push(PaneManager.PRESENTATION_PANE);
       
       JsArrayString tabSet2 = createArray().cast();
@@ -108,7 +109,7 @@ public class PaneConfig extends UserPrefsAccessor.Panes
       return new String[] {PaneManager.ENVIRONMENT_PANE, PaneManager.HISTORY_PANE, PaneManager.FILES_PANE,
                            PaneManager.PLOTS_PANE, PaneManager.CONNECTIONS_PANE,
                            PaneManager.PACKAGES_PANE, PaneManager.HELP_PANE, PaneManager.BUILD_PANE,
-                           PaneManager.VCS_PANE, PaneManager.TUTORIAL_PANE, PaneManager.VIEWER_PANE,
+                           PaneManager.VCS_PANE, PaneManager.TUTORIAL_PANE, PaneManager.AI_PANE, PaneManager.VIEWER_PANE,
                            PaneManager.PRESENTATIONS_PANE, PaneManager.PRESENTATION_PANE};
    }
 

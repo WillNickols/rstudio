@@ -97,7 +97,7 @@ public class PaneManager
    public interface Binder extends CommandBinder<Commands, PaneManager> {}
 
    public enum Tab {
-      History, Files, Plots, Packages, Help, VCS, Tutorial, Build, Connections,
+      History, Files, Plots, Packages, Help, VCS, Tutorial, AI, Build, Connections,
       Presentation, Presentations, Environment, Viewer, Source, Console, SourceColumn
    }
 
@@ -247,6 +247,7 @@ public class PaneManager
                       @Named(LAUNCHER_PANE) final WorkbenchTab launcherJobsTab,
                       @Named(DATA_OUTPUT_PANE) final WorkbenchTab dataTab,
                       @Named(TUTORIAL_PANE) final WorkbenchTab tutorialTab,
+                      @Named(AI_PANE) final WorkbenchTab aiTab,
                       final MarkersOutputTab markersTab,
                       final FindOutputTab findOutputTab,
                       OptionsLoader.Shim optionsLoader,
@@ -285,6 +286,7 @@ public class PaneManager
       testsTab_ = testsTab;
       dataTab_ = dataTab;
       tutorialTab_ = tutorialTab;
+      aiTab_ = aiTab;
       pGlobalDisplay_ = pGlobalDisplay;
 
       binder.bind(commands, this);
@@ -1348,6 +1350,8 @@ public class PaneManager
             return vcsTab_;
          case Tutorial:
             return tutorialTab_;
+         case AI:
+            return aiTab_;
          case Build:
             return buildTab_;
          case Presentation:
@@ -1372,7 +1376,7 @@ public class PaneManager
    {
       return new WorkbenchTab[] { historyTab_, filesTab_,
                                   plotsTab_, packagesTab_, helpTab_,
-                                  vcsTab_, tutorialTab_, buildTab_, 
+                                  vcsTab_, tutorialTab_, aiTab_, buildTab_, 
                                   presentationTab_, presentation2Tab_,
                                   environmentTab_, viewerTab_,
                                   connectionsTab_, jobsTab_, launcherJobsTab_ };
@@ -1906,6 +1910,8 @@ public class PaneManager
          return Tab.VCS;
       if (name.equalsIgnoreCase(TUTORIAL_PANE))
          return Tab.Tutorial;
+      if (name.equalsIgnoreCase(AI_PANE))
+         return Tab.AI;
       if (name.equalsIgnoreCase(BUILD_PANE))
          return Tab.Build;
       if (name.equalsIgnoreCase(PRESENTATION_PANE))
@@ -1947,6 +1953,7 @@ public class PaneManager
       case SourceColumn: return commands_.layoutZoomSource();
       case VCS:          return commands_.layoutZoomVcs();
       case Tutorial:     return commands_.layoutZoomTutorial();
+      case AI:     return commands_.layoutZoomAI();
       case Viewer:       return commands_.layoutZoomViewer();
       case Connections:  return commands_.layoutZoomConnections();
       case Presentations: return commands_.layoutZoomPresentation2();
@@ -2013,6 +2020,7 @@ public class PaneManager
       commands.add(commands_.layoutZoomSource());
       commands.add(commands_.layoutZoomVcs());
       commands.add(commands_.layoutZoomTutorial());
+      commands.add(commands_.layoutZoomAI());
       commands.add(commands_.layoutZoomViewer());
       commands.add(commands_.layoutZoomConnections());
       commands.add(commands_.layoutZoomPresentation2());
@@ -2077,6 +2085,7 @@ public class PaneManager
    private final WorkbenchTab launcherJobsTab_;
    private final WorkbenchTab dataTab_;
    private final WorkbenchTab tutorialTab_;
+   private final WorkbenchTab aiTab_;
    private final OptionsLoader.Shim optionsLoader_;
    private final Provider<GlobalDisplay> pGlobalDisplay_;
    private final MainSplitPanel panel_;
@@ -2139,6 +2148,7 @@ public class PaneManager
    public static final String LAUNCHER_PANE = "Launcher"; //$NON-NLS-1$
    public static final String DATA_OUTPUT_PANE = "Data Output"; //$NON-NLS-1$
    public static final String TUTORIAL_PANE = "Tutorial"; //$NON-NLS-1$
+   public static final String AI_PANE = "AI"; //$NON-NLS-1$
    public static final String SOURCE_COLUMN = "SourceColumn"; //$NON-NLS-1$
    public static final String FIND_PANE = "Find"; //$NON-NLS-1$
    public static final String MARKERS_PANE = "Markers"; //$NON-NLS-1$

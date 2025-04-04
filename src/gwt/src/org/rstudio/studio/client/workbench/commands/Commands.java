@@ -554,6 +554,10 @@ public abstract class
    public abstract AppCommand tutorialStop();
    public abstract AppCommand tutorialHome();
 
+   // AI
+   public abstract AppCommand activateAI();
+   public abstract AppCommand layoutZoomAI();
+
 
    // Viewer
    public abstract AppCommand activateViewer();

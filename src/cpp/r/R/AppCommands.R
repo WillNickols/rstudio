@@ -488,6 +488,8 @@
    clearUserPrefs = "clearUserPrefs",
    activateTutorial = "activateTutorial",
    layoutZoomTutorial = "layoutZoomTutorial",
+   activateAI = "activateAI",
+   layoutZoomAI = "layoutZoomAI",
    tutorialPopout = "tutorialPopout",
    tutorialBack = "tutorialBack",
    tutorialForward = "tutorialForward",

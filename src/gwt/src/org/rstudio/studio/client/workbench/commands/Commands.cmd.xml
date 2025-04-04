@@ -307,6 +307,7 @@ See `/src/gwt/tools/i18n-helpers/README.md`.
             <cmd refid="layoutZoomViewer"/>
             <cmd refid="layoutZoomVcs"/>
             <cmd refid="layoutZoomTutorial"/>
+            <cmd refid="layoutZoomAI"/>
             <cmd refid="layoutZoomBuild"/>
             <cmd refid="layoutZoomConnections"/>
             <cmd refid="layoutZoomPresentation2"/>
@@ -1600,6 +1601,12 @@ See `/src/gwt/tools/i18n-helpers/README.md`.
         label="Zoom Tutorial"
         menuLabel="Zoom _Tutorial"
         windowMode="main"/>
+
+   <cmd id="layoutZoomAI"
+         checkable="true"
+         label="Zoom AI"
+         menuLabel="Zoom _k AI"
+         windowMode="main"/>
 
    <cmd id="layoutZoomBuild"
         checkable="true"

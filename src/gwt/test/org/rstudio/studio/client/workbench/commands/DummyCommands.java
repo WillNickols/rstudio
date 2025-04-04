@@ -2336,7 +2336,17 @@ public class DummyCommands extends Commands {
     }
 
     @Override
+    public AppCommand activateAI() {
+        return null;
+    }
+
+    @Override
     public AppCommand layoutZoomTutorial() {
+        return null;
+    }
+
+    @Override
+    public AppCommand layoutZoomAI() {
         return null;
     }
 
