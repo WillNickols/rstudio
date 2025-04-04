@@ -21,6 +21,10 @@
  *
  */
 
+#ifdef _WIN32
+# pragma warning(disable : 4267)
+#endif
+
 #include <shared_core/json/Json.hpp>
 
 #include <sstream>
@@ -31,12 +35,36 @@
 
 #include <shared_core/Error.hpp>
 
-#include "shared_core/json/rapidjson/document.h"
-#include "shared_core/json/rapidjson/stringbuffer.h"
-#include "shared_core/json/rapidjson/prettywriter.h"
-#include "shared_core/json/rapidjson/writer.h"
-#include "shared_core/json/rapidjson/error/en.h"
-#include "shared_core/json/rapidjson/schema.h"
+
+#include <cstddef>
+
+//
+// Ask rapidjson to use 'std::size_t' internally.
+// On macOS, `std::size_t` is a typedef for `unsigned long` as opposed
+// to `unsigned long long`, even though those types are the same size.
+// However, this causes issues during compilation using rapidjson,
+// so we just explicitly request `uint64_t` here.
+//
+#ifdef __APPLE__
+
+namespace rapidjson {
+typedef uint64_t SizeType;
+} // end namespace rapidjson
+
+#else
+
+namespace rapidjson {
+typedef std::size_t SizeType;
+} // end namespace rapidjson
+
+#endif
+
+#include <rapidjson/document.h>
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/prettywriter.h>
+#include <rapidjson/writer.h>
+#include <rapidjson/error/en.h>
+#include <rapidjson/schema.h>
 
 // JSON Boost Error ====================================================================================================
 // Declare rapidjson errors as boost errors.
