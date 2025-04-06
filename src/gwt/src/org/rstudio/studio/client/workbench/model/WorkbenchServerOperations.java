@@ -50,6 +50,7 @@ import org.rstudio.studio.client.workbench.views.environment.dataimport.model.Da
 import org.rstudio.studio.client.workbench.views.environment.model.EnvironmentServerOperations;
 import org.rstudio.studio.client.workbench.views.files.model.FilesServerOperations;
 import org.rstudio.studio.client.workbench.views.help.model.HelpServerOperations;
+import org.rstudio.studio.client.workbench.views.ai.model.AiServerOperations;
 import org.rstudio.studio.client.workbench.views.history.model.HistoryServerOperations;
 import org.rstudio.studio.client.workbench.views.output.find.model.FindInFilesServerOperations;
 import org.rstudio.studio.client.workbench.views.output.lint.model.LintServerOperations;
@@ -73,6 +74,7 @@ public interface WorkbenchServerOperations extends ConsoleServerOperations,
                                                    FilesServerOperations,
                                                    PackagesServerOperations,
                                                    HelpServerOperations,
+                                                   AiServerOperations,
                                                    PlotsServerOperations,
                                                    EditServerOperations,
                                                    SourceServerOperations,

@@ -199,6 +199,8 @@ set(SESSION_SOURCE_FILES
    modules/SessionGraphics.cpp
    modules/SessionHelp.cpp
    modules/SessionHelpHome.cpp
+   modules/SessionAi.cpp
+   modules/SessionAiHome.cpp
    modules/SessionHistory.cpp
    modules/SessionHistoryArchive.cpp
    modules/SessionHTMLPreview.cpp
@@ -771,6 +773,10 @@ if(NOT RSTUDIO_SESSION_WIN32 AND NOT RSESSION_ALTERNATE_BUILD)
 
    # help resources
    install(DIRECTORY "resources/help_resources"
+           DESTINATION ${RSTUDIO_INSTALL_SUPPORTING}/resources)
+
+   # ai resources
+   install(DIRECTORY "resources/ai_resources"
            DESTINATION ${RSTUDIO_INSTALL_SUPPORTING}/resources)
 
    # install pagedtable

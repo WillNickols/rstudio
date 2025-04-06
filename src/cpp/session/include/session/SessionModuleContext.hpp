@@ -150,6 +150,7 @@ core::shell_utils::ShellCommand rCmd(const core::FilePath& rBinDir);
 
 // get the R local help port
 std::string rLocalHelpPort();
+std::string rLocalAiPort();
 
 // get current libpaths
 std::vector<core::FilePath> getLibPaths();

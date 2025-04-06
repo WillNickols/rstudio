@@ -200,6 +200,12 @@ import org.rstudio.studio.client.workbench.views.help.HelpTab;
 import org.rstudio.studio.client.workbench.views.help.model.HelpServerOperations;
 import org.rstudio.studio.client.workbench.views.help.search.HelpSearch;
 import org.rstudio.studio.client.workbench.views.help.search.HelpSearchWidget;
+import org.rstudio.studio.client.workbench.views.ai.Ai;
+import org.rstudio.studio.client.workbench.views.ai.AiPane;
+import org.rstudio.studio.client.workbench.views.ai.AiTab;
+import org.rstudio.studio.client.workbench.views.ai.model.AiServerOperations;
+import org.rstudio.studio.client.workbench.views.ai.search.AiSearch;
+import org.rstudio.studio.client.workbench.views.ai.search.AiSearchWidget;
 import org.rstudio.studio.client.workbench.views.history.History;
 import org.rstudio.studio.client.workbench.views.history.HistoryTab;
 import org.rstudio.studio.client.workbench.views.history.model.HistoryServerOperations;
@@ -262,9 +268,6 @@ import org.rstudio.studio.client.workbench.views.tutorial.TutorialPane;
 import org.rstudio.studio.client.workbench.views.tutorial.TutorialPresenter;
 import org.rstudio.studio.client.workbench.views.tutorial.TutorialServerOperations;
 import org.rstudio.studio.client.workbench.views.tutorial.TutorialTab;
-import org.rstudio.studio.client.workbench.views.ai.AIPane;
-import org.rstudio.studio.client.workbench.views.ai.AIPresenter;
-import org.rstudio.studio.client.workbench.views.ai.AITab;
 import org.rstudio.studio.client.workbench.views.vcs.VCSTab;
 import org.rstudio.studio.client.workbench.views.vcs.common.diff.LineTablePresenter;
 import org.rstudio.studio.client.workbench.views.vcs.common.diff.LineTableView;
@@ -373,11 +376,11 @@ public class RStudioGinModule extends AbstractGinModule
       bind(Plots.Display.class).to(PlotsPane.class);
       bind(Packages.Display.class).to(PackagesPane.class);
       bind(Help.Display.class).to(HelpPane.class);
+      bind(Ai.Display.class).to(AiPane.class);
       bind(Edit.Display.class).to(EditView.class);
       bind(GitPresenter.Display.class).to(GitPane.class);
       bind(SVNPresenter.Display.class).to(SVNPane.class);
       bind(TutorialPresenter.Display.class).to(TutorialPane.class);
-      bind(AIPresenter.Display.class).to(AIPane.class);
       bind(BuildPresenter.Display.class).to(BuildPane.class);
       bind(Presentation.Display.class).to(PresentationPane.class);
       bind(Presentation2.Display.class).to(Presentation2Pane.class);
@@ -416,11 +419,12 @@ public class RStudioGinModule extends AbstractGinModule
       bindTab(PaneManager.LAUNCHER_PANE, LauncherJobsTab.class);
       bindTab(PaneManager.DATA_OUTPUT_PANE, DataOutputTab.class);
       bindTab(PaneManager.TUTORIAL_PANE, TutorialTab.class);
-      bindTab(PaneManager.AI_PANE, AITab.class);
+      bindTab(PaneManager.AI_PANE, AiTab.class);
 
       bind(Shell.Display.class).to(ShellPane.class);
            
       bind(HelpSearch.Display.class).to(HelpSearchWidget.class);
+      bind(AiSearch.Display.class).to(AiSearchWidget.class);
       bind(CodeSearch.Display.class).to(CodeSearchWidget.class);
 
       bind(GitReviewPresenter.Display.class).to(GitReviewPanel.class);
@@ -448,6 +452,7 @@ public class RStudioGinModule extends AbstractGinModule
       bind(PlotsServerOperations.class).to(RemoteServer.class);
       bind(PackagesServerOperations.class).to(RemoteServer.class);
       bind(HelpServerOperations.class).to(RemoteServer.class);
+      bind(AiServerOperations.class).to(RemoteServer.class);
       bind(EditServerOperations.class).to(RemoteServer.class);
       bind(MirrorsServerOperations.class).to(RemoteServer.class);
       bind(VCSServerOperations.class).to(RemoteServer.class);

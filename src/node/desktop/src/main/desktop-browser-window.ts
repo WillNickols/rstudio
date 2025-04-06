@@ -201,6 +201,17 @@ export class DesktopBrowserWindow extends EventEmitter {
             return { action: 'deny' };
           }
         }
+
+        const aiPrefix = `${this.options.baseUrl}/ai/library/`;
+        if (details.url.startsWith(aiPrefix)) {
+          const reAi = String.raw`/ai/library/([^/]+)/doc/(.*)\.pdf`;
+          const match = details.url.match(reAi);
+          if (match) {
+            const args = [decodeURIComponent(match[2]), decodeURIComponent(match[1])];
+            this.sendRpcRequest('show_vignette', args);
+            return { action: 'deny' };
+          }
+        }
       }
 
       // check if this is target="_blank" from an IDE window

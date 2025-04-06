@@ -39,10 +39,15 @@ public interface HyperlinkResources extends ClientBundle
         String hyperlinkPopupHeaderRight();
         String hyperlinkPopupHeaderRun();
         String hyperlinkPopupHeaderHelp();
+        String hyperlinkPopupHeaderAi();
         
         String helpPreview();
         String helpPreviewTitle();
         String helpPreviewDescription();
+
+        String aiPreview();
+        String aiPreviewTitle();
+        String aiPreviewDescription();
 
     }
 }

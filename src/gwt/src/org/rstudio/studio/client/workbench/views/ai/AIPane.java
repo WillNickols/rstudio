@@ -1,190 +1,1061 @@
-package org.rstudio.studio.client.workbench.views.ai;
- 
-import org.rstudio.core.client.widget.RStudioFrame;
-import org.rstudio.studio.client.common.AutoGlassPanel;
-import org.rstudio.studio.client.workbench.ui.WorkbenchPane;
-import org.rstudio.studio.client.server.ServerRequestCallback;
-import org.rstudio.studio.client.server.ServerError;
-import org.rstudio.studio.client.RStudioGinjector;
-import org.rstudio.studio.client.common.GlobalDisplay;
+/*
+ * AiPane.java
+ *
+ * Copyright (C) 2022 by Posit Software, PBC
+ *
+ * Unless you have received this program directly from Posit Software pursuant
+ * to the terms of a commercial license agreement with Posit Software, then
+ * this program is licensed to you under the terms of version 3 of the
+ * GNU Affero General Public License. This program is distributed WITHOUT
+ * ANY EXPRESS OR IMPLIED WARRANTY, INCLUDING THOSE OF NON-INFRINGEMENT,
+ * MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE. Please refer to the
+ * AGPL (http://www.gnu.org/licenses/agpl-3.0.txt) for more details.
+ *
+ */
 
-import com.google.gwt.user.client.ui.Widget;
-import com.google.inject.Inject;
+package org.rstudio.studio.client.workbench.views.ai;
+
+import org.rstudio.core.client.BrowseCap;
+import org.rstudio.core.client.ElementIds;
+import org.rstudio.core.client.Point;
+import org.rstudio.core.client.Rectangle;
+import org.rstudio.core.client.StringUtil;
+import org.rstudio.core.client.command.KeyboardShortcut;
+import org.rstudio.core.client.command.ShortcutManager;
+import org.rstudio.core.client.dom.DomUtils;
+import org.rstudio.core.client.dom.ElementEx;
+import org.rstudio.core.client.dom.EventProperty;
+import org.rstudio.core.client.dom.IFrameElementEx;
+import org.rstudio.core.client.dom.WindowEx;
+import org.rstudio.core.client.events.NativeKeyDownEvent;
+import org.rstudio.core.client.files.FileSystemItem;
+import org.rstudio.core.client.hyperlink.AiHyperlinkPopupHeader;
+import org.rstudio.core.client.hyperlink.AiPageShower;
+import org.rstudio.core.client.hyperlink.AiPreview;
+import org.rstudio.core.client.hyperlink.HyperlinkPopupPanel;
+import org.rstudio.core.client.hyperlink.HyperlinkPopupPositioner;
+import org.rstudio.core.client.regex.Match;
+import org.rstudio.core.client.regex.Pattern;
+import org.rstudio.core.client.theme.res.ThemeStyles;
+import org.rstudio.core.client.widget.CanFocus;
+import org.rstudio.core.client.widget.FindTextBox;
+import org.rstudio.core.client.widget.FocusHelper;
+import org.rstudio.core.client.widget.MessageDialog;
+import org.rstudio.core.client.widget.RStudioThemedFrame;
+import org.rstudio.core.client.widget.SearchDisplay;
+import org.rstudio.core.client.widget.SecondaryToolbar;
+import org.rstudio.core.client.widget.SmallButton;
+import org.rstudio.core.client.widget.Toolbar;
+import org.rstudio.core.client.widget.ToolbarButton;
+import org.rstudio.studio.client.RStudioGinjector;
+import org.rstudio.studio.client.application.Desktop;
+import org.rstudio.studio.client.application.events.EventBus;
+import org.rstudio.studio.client.common.AutoGlassPanel;
+import org.rstudio.studio.client.common.GlobalDisplay;
+import org.rstudio.studio.client.common.GlobalDisplay.NewWindowOptions;
+import org.rstudio.studio.client.common.SimpleRequestCallback;
+import org.rstudio.studio.client.server.Server;
+import org.rstudio.studio.client.workbench.commands.Commands;
+import org.rstudio.studio.client.workbench.prefs.model.UserPrefs;
+import org.rstudio.studio.client.workbench.ui.WorkbenchPane;
+import org.rstudio.studio.client.workbench.views.console.events.SendToConsoleEvent;
+import org.rstudio.studio.client.workbench.views.ai.Ai.LinkMenu;
+import org.rstudio.studio.client.workbench.views.ai.events.AiNavigateEvent;
+import org.rstudio.studio.client.workbench.views.ai.model.VirtualHistory;
+import org.rstudio.studio.client.workbench.views.ai.search.AiSearch;
+
+import com.google.gwt.core.client.GWT;
+import com.google.gwt.core.client.JavaScriptObject;
+import com.google.gwt.core.client.JsArrayString;
+import com.google.gwt.core.client.Scheduler;
+import com.google.gwt.core.client.Scheduler.RepeatingCommand;
+import com.google.gwt.core.client.Scheduler.ScheduledCommand;
+import com.google.gwt.dom.client.AnchorElement;
+import com.google.gwt.dom.client.Document;
+import com.google.gwt.dom.client.Element;
+import com.google.gwt.dom.client.EventTarget;
+import com.google.gwt.dom.client.NativeEvent;
+import com.google.gwt.dom.client.NodeList;
+import com.google.gwt.dom.client.Style.Unit;
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.event.dom.client.KeyCodes;
 import com.google.gwt.event.dom.client.KeyDownEvent;
 import com.google.gwt.event.dom.client.KeyDownHandler;
-import com.google.gwt.user.client.ui.TextBox;
-import com.google.gwt.user.client.ui.VerticalPanel;
+import com.google.gwt.event.dom.client.KeyUpEvent;
+import com.google.gwt.event.dom.client.KeyUpHandler;
+import com.google.gwt.event.dom.client.LoadEvent;
+import com.google.gwt.event.dom.client.LoadHandler;
+import com.google.gwt.event.logical.shared.ResizeEvent;
+import com.google.gwt.event.logical.shared.ResizeHandler;
+import com.google.gwt.event.shared.HandlerRegistration;
+import com.google.gwt.http.client.URL;
+import com.google.gwt.resources.client.ClientBundle;
+import com.google.gwt.resources.client.CssResource;
+import com.google.gwt.user.client.Timer;
+import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.Label;
-import com.google.gwt.user.client.ui.TextArea;
-import com.google.gwt.http.client.Request;
-import com.google.gwt.http.client.RequestBuilder;
-import com.google.gwt.http.client.RequestCallback;
-import com.google.gwt.http.client.RequestException;
-import com.google.gwt.http.client.Response;
-import com.google.gwt.json.client.JSONObject;
-import com.google.gwt.json.client.JSONParser;
-import com.google.gwt.json.client.JSONValue;
-import com.google.gwt.json.client.JSONArray;
- 
-public class AIPane
-      extends WorkbenchPane
-      implements AIPresenter.Display
+import com.google.gwt.user.client.ui.MenuItem;
+import com.google.gwt.user.client.ui.VerticalPanel;
+import com.google.gwt.user.client.ui.Widget;
+import com.google.inject.Inject;
+import com.google.inject.Provider;
+
+public class AiPane extends WorkbenchPane
+                      implements Ai.Display
 {
    @Inject
-   protected AIPane()
+   public AiPane(Provider<AiSearch> searchProvider,
+                   GlobalDisplay globalDisplay,
+                   Commands commands,
+                   EventBus events,
+                   UserPrefs prefs)
    {
-      super("AI");
-      ensureWidget();
-   }
- 
-   @Override
-   protected Widget createMainWidget()
-   {
-      frame_ = new RStudioFrame("AI Pane");
-      frame_.setSize("100%", "100%");
-      frame_.addStyleName("ace_editor_theme");
-      frame_.setUrl("about:blank");
+      super(constants_.aiText(), events);
 
-      VerticalPanel panel = new VerticalPanel();
-      panel.setWidth("100%");
+      searchProvider_ = searchProvider;
+      globalDisplay_ = globalDisplay;
+      commands_ = commands;
+      server_ = RStudioGinjector.INSTANCE.getServer();
 
-      inputBox = new TextBox();
-      inputBox.setWidth("100%");
-      inputBox.getElement().setPropertyString("placeholder", "Search Wikipedia");
-
-      resultArea = new TextArea();
-      resultArea.setWidth("100%");
-      resultArea.setVisibleLines(10);
-      resultArea.setReadOnly(true);
-
-      inputBox.addKeyDownHandler(new KeyDownHandler() {
+      // init with a no-op timer
+      popupTimer_ = new Timer()
+      {
          @Override
-         public void onKeyDown(KeyDownEvent event) {
-            if (event.getNativeKeyCode() == KeyCodes.KEY_ENTER) {
-               String inputText = inputBox.getText();
-               searchWikipedia(inputText);
-               inputBox.setText(""); // Clear the input box after submission
-            }
+         public void run() {}
+      };
+      popupCancelled_ = false;
+
+      prefs_ = prefs;
+
+      MenuItem clear = commands.clearAiHistory().createMenuItem(false);
+      history_ = new ToolbarLinkMenu(12, true, null, new MenuItem[] { clear });
+
+      Window.addResizeHandler(new ResizeHandler()
+      {
+         public void onResize(ResizeEvent event)
+         {
+            history_.getMenu().hide();
          }
       });
 
-      panel.add(inputBox);
-      panel.add(resultArea);
-      panel.add(frame_);
+      frame_ = new RStudioThemedFrame(
+         constants_.aiPaneTitle(),
+         null,
+         RES.editorStyles().getText(),
+         null,
+         false,
+         true);
       
-      return new AutoGlassPanel(panel);
-   }
+      frame_.setSize("100%", "100%");
+      frame_.setStylePrimaryName("rstudio-AiFrame");
+      frame_.addStyleName("ace_editor_theme");
+      ElementIds.assignElementId(frame_.getElement(), ElementIds.AI_FRAME);
 
-   private void searchWikipedia(String query) {
-      // First, search for articles matching the query
-      String searchUrl = "https://en.wikipedia.org/w/api.php?" +
-                        "action=query&" +
-                        "format=json&" +
-                        "list=search&" +
-                        "srsearch=" + query + "&" +
-                        "origin=*";
-      
-      RequestBuilder builder = new RequestBuilder(RequestBuilder.GET, searchUrl);
-      
-      try {
-         builder.sendRequest(null, new RequestCallback() {
-            @Override
-            public void onResponseReceived(Request request, Response response) {
-               if (response.getStatusCode() == 200) {
-                  JSONValue jsonValue = JSONParser.parseStrict(response.getText());
-                  JSONObject jsonObject = jsonValue.isObject();
-                  
-                  if (jsonObject != null) {
-                     JSONObject json_query = jsonObject.get("query").isObject();
-                     if (json_query != null) {
-                        JSONArray search = json_query.get("search").isArray();
-                        if (search != null && search.size() > 0) {
-                           // Get the first result's page ID
-                           JSONObject firstResult = search.get(0).isObject();
-                           if (firstResult != null) {
-                              String pageId = firstResult.get("pageid").isNumber().toString();
-                              getArticleSummary(pageId);
-                           }
-                        } else {
-                           resultArea.setText("No results found for: " + query);
-                        }
-                     }
-                  }
-               } else {
-                  resultArea.setText("Error: " + response.getStatusText());
+      navStack_ = new VirtualHistory(frame_);
+
+      // NOTE: we do some pretty strange gymnastics to save the scroll
+      // position for the iframe. when the Ai Pane is deactivated
+      // (e.g. another tab in the tabset is selected), a synthetic scroll
+      // event is sent to the iframe's window, forcing it to scroll back
+      // to the top of the window. in order to suppress this behavior, we
+      // track whether the scroll event occurred when the tab was deactivated;
+      // if it was, then we restore the last-recorded scroll position instead.
+      scrollTimer_ = new Timer()
+      {
+         @Override
+         public void run()
+         {
+            WindowEx contentWindow = getContentWindow();
+            if (contentWindow != null)
+            {
+               if (selected_)
+               {
+                  scrollPos_ = contentWindow.getScrollPosition();
+               }
+               else if (scrollPos_ != null)
+               {
+                  contentWindow.setScrollPosition(scrollPos_);
                }
             }
+         }
+      };
 
-            @Override
-            public void onError(Request request, Throwable exception) {
-               resultArea.setText("Error performing search: " + exception.getMessage());
-            }
-         });
-      } catch (RequestException e) {
-         resultArea.setText("Error: " + e.getMessage());
+      prefs_.helpFontSizePoints().bind((Double value) -> refresh());
+      
+      ensureWidget();
+   }
+
+   @Override
+   protected Widget createMainWidget()
+   {
+      return new AutoGlassPanel(frame_);
+   }
+
+   @Override
+   public void onBeforeUnselected()
+   {
+      super.onBeforeUnselected();
+      selected_ = false;
+   }
+
+   @Override
+   public void onSelected()
+   {
+      super.onSelected();
+      selected_ = true;
+
+      if (scrollPos_ == null)
+         return;
+
+      IFrameElementEx iframeEl = getIFrameEx();
+      if (iframeEl == null)
+         return;
+
+      WindowEx windowEl = iframeEl.getContentWindow();
+      if (windowEl == null)
+         return;
+
+      windowEl.setScrollPosition(scrollPos_);
+   }
+
+   @Override
+   public void setFocus()
+   {
+      focus();
+   }
+
+   @Override
+   public void onResize()
+   {
+      manageTitleLabelMaxSize();
+
+      super.onResize();
+   }
+
+   private void manageTitleLabelMaxSize()
+   {
+      if (title_ != null)
+      {
+         int offsetWidth = getOffsetWidth();
+         if (offsetWidth > 0)
+         {
+            int newWidth = offsetWidth - 25;
+            if (newWidth > 0)
+               title_.getElement().getStyle().setPropertyPx("maxWidth", newWidth);
+         }
       }
    }
 
-   private void getArticleSummary(String pageId) {
-      // Get the article summary
-      String summaryUrl = "https://en.wikipedia.org/w/api.php?" +
-                         "action=query&" +
-                         "format=json&" +
-                         "prop=extracts&" +
-                         "exintro=1&" +
-                         "explaintext=1&" +
-                         "pageids=" + pageId + "&" +
-                         "origin=*";
-      
-      RequestBuilder builder = new RequestBuilder(RequestBuilder.GET, summaryUrl);
-      
-      try {
-         builder.sendRequest(null, new RequestCallback() {
-            @Override
-            public void onResponseReceived(Request request, Response response) {
-               if (response.getStatusCode() == 200) {
-                  JSONValue jsonValue = JSONParser.parseStrict(response.getText());
-                  JSONObject jsonObject = jsonValue.isObject();
-                  
-                  if (jsonObject != null) {
-                     JSONObject query = jsonObject.get("query").isObject();
-                     if (query != null) {
-                        JSONObject pages = query.get("pages").isObject();
-                        if (pages != null) {
-                           JSONObject page = pages.get(pageId).isObject();
-                           if (page != null) {
-                              String title = page.get("title").isString().stringValue();
-                              String extract = page.get("extract").isString().stringValue();
-                              
-                              // Truncate the extract if it's too long
-                              if (extract.length() > 500) {
-                                 extract = extract.substring(0, 500) + "...";
-                              }
-                              
-                              resultArea.setText("Title: " + title + "\n\n" +
-                                               "Summary: " + extract + "\n\n" +
-                                               "Read more: https://en.wikipedia.org/?curid=" + pageId);
-                           }
-                        }
-                     }
-                  }
-               } else {
-                  resultArea.setText("Error: " + response.getStatusText());
-               }
-            }
+   @Override
+   protected void onLoad()
+   {
+      super.onLoad();
 
-            @Override
-            public void onError(Request request, Throwable exception) {
-               resultArea.setText("Error getting article: " + exception.getMessage());
+      if (!initialized_)
+      {
+         initialized_ = true;
+
+         initAiCallbacks();
+
+         Scheduler.get().scheduleDeferred(new ScheduledCommand()
+         {
+            public void execute()
+            {
+               manageTitleLabelMaxSize();
             }
          });
-      } catch (RequestException e) {
-         resultArea.setText("Error: " + e.getMessage());
       }
    }
-    
-   private TextBox inputBox;
-   private TextArea resultArea;
-   private RStudioFrame frame_;
+
+   public final native void initAiCallbacks() /*-{
+      function addEventHandler(subject, eventName, handler) {
+         if (subject.addEventListener) {
+            subject.addEventListener(eventName, handler, false);
+         }
+         else {
+            subject.attachEvent(eventName, handler);
+         }
+      }
+
+      var thiz = this;
+      
+      $wnd.aiNavigated = function(document, win) {
+         thiz.@org.rstudio.studio.client.workbench.views.ai.AiPane::aiNavigated(Lcom/google/gwt/dom/client/Document;)(document);
+         addEventHandler(win, "unload", function () {
+            thiz.@org.rstudio.studio.client.workbench.views.ai.AiPane::unload()();
+         });
+      };
+      
+      $wnd.aiNavigate = function(url) {
+         if (url.length)
+            thiz.@org.rstudio.studio.client.workbench.views.ai.AiPane::showAi(Ljava/lang/String;)(url);
+      };
+
+      $wnd.aiKeydown = function(e) {
+         thiz.@org.rstudio.studio.client.workbench.views.ai.AiPane::handleKeyDown(Lcom/google/gwt/dom/client/NativeEvent;)(e);
+      };
+      
+      $wnd.aiMousedown = function(e) {
+         thiz.@org.rstudio.studio.client.workbench.views.ai.AiPane::handleMouseDown(*)(e);
+      };
+
+      $wnd.aiMouseover = function(e) {
+         thiz.@org.rstudio.studio.client.workbench.views.ai.AiPane::handleMouseOver(*)(e);
+      }
+
+      $wnd.aiMouseout = function(e) {
+         thiz.@org.rstudio.studio.client.workbench.views.ai.AiPane::handleMouseOut(*)(e);
+      }
+
+      $wnd.aiClick = function(e) {
+         thiz.@org.rstudio.studio.client.workbench.views.ai.AiPane::handleClick(*)(e);
+      }
+      
+   }-*/;
+
+
+
+   // delegate shortcuts which occur while Ai has focus
+
+   private void handleKeyDown(NativeEvent e)
+   {
+      // determine whether this key-combination means we should focus find
+      int mod = KeyboardShortcut.getModifierValue(e);
+      if (mod == (BrowseCap.hasMetaKey() ? KeyboardShortcut.META
+                                         : KeyboardShortcut.CTRL))
+      {
+         if (e.getKeyCode() == 'F')
+         {
+            e.preventDefault();
+            e.stopPropagation();
+            WindowEx.get().focus();
+            findTextBox_.focus();
+            findTextBox_.selectAll();
+            return;
+         }
+         else if (e.getKeyCode() == KeyCodes.KEY_ENTER)
+         {
+            // extract the selected code, if any
+            String code = frame_.getWindow().getSelectedText();
+            if (code.isEmpty())
+               return;
+
+            // send it to the console
+            events_.fireEvent(new SendToConsoleEvent(
+                  code,
+                  true, // execute
+                  false // focus
+                  ));
+            return;
+         }
+      }
+
+      // don't let backspace perform browser back
+      DomUtils.preventBackspaceCausingBrowserBack(e);
+
+      // ESC closes ai preview popup
+      if (e.getKeyCode() == KeyCodes.KEY_ESCAPE)
+      {
+         if (popup_ != null)
+            popup_.hide();
+         popup_ = null;
+      }
+      
+      // delegate to the shortcut manager
+      NativeKeyDownEvent evt = new NativeKeyDownEvent(e);
+      ShortcutManager.INSTANCE.onKeyDown(evt);
+      if (evt.isCanceled())
+      {
+         e.preventDefault();
+         e.stopPropagation();
+
+         // since this is a shortcut handled by the main window
+         // we set focus to it
+         WindowEx.get().focus();
+      }
+   }
+   
+   private void handleMouseDown(NativeEvent event)
+   {
+      // Not required on Electron; back / forward navigation is handled
+      // via a top-level Javascript event handler. See DesktopApplicationHeader.java
+      // for more details.
+      if (BrowseCap.isElectron())
+         return;
+      
+      int button = EventProperty.button(event);
+      if (button == EventProperty.MOUSE_BACKWARD)
+      {
+         event.stopPropagation();
+         event.preventDefault();
+         commands_.aiBack().execute();
+      }
+      else if (button == EventProperty.MOUSE_FORWARD)
+      {
+         event.stopPropagation();
+         event.preventDefault();
+         commands_.aiForward().execute();
+      }
+   }
+
+   private void handleMouseOver(NativeEvent event)
+   {
+      EventTarget target = event.getEventTarget();
+      if (AnchorElement.is(target)) 
+      {
+         AnchorElement anchor = AnchorElement.as(Element.as(target));
+         String url = anchor.getHref();
+         Match match = AI_PATTERN.match(url, 0);
+         if (match != null) 
+         {
+            // cancel previous timer
+            popupTimer_.cancel();
+
+            // hide previous popup immediately
+            if (popup_ != null)
+               popup_.hide();
+            
+            // and schedule a new one
+            popupTimer_ = new Timer()
+            {
+               @Override
+               public void run()
+               {
+                  String topic = decodeURIComponent(match.getGroup(2));
+                  
+                  popup_ = new HyperlinkPopupPanel(new AiPageShower() {
+
+                     @Override
+                     public void showAi() {
+                        AiPane.this.showAi(url);
+                     }
+                     
+                  });
+
+                  // pkg might not be the actual package
+                  // so we need to do the same as what the internal ai system would:
+                  server_.followAiTopic(url, new SimpleRequestCallback<JsArrayString>(){
+
+                     @Override
+                     public void onResponseReceived(JsArrayString files)
+                     {
+                        if (files.length() == 1)
+                        {
+                           String pkg = files.get(0).replaceFirst("/ai/.*$", "").replaceFirst("^.*/", "");
+                        
+                           final VerticalPanel panel = new VerticalPanel();
+                           panel.add(new AiHyperlinkPopupHeader(topic, pkg));
+                           panel.add(new AiPreview(topic, pkg, () -> 
+                           {
+                              popup_.setContent(panel);
+
+                              Rectangle bounds = new Rectangle(event.getClientX() + getIFrameEx().getAbsoluteLeft(), 
+                                                               event.getClientY() + getIFrameEx().getAbsoluteTop(), 
+                                                               anchor.getClientWidth(), 
+                                                               anchor.getClientWidth());
+                              HyperlinkPopupPositioner positioner = new HyperlinkPopupPositioner(bounds, popup_);
+                                 
+                              if (!popupCancelled_) 
+                                 popup_.setPopupPositionAndShow(positioner);
+                           }));
+                        }
+                     }
+                  });
+
+               }
+            };
+            popupCancelled_ = false;
+            popupTimer_.schedule(400);
+         }
+      }
+   }
+
+   private void handleMouseOut(NativeEvent event) {
+      EventTarget target = event.getEventTarget();
+      if (AnchorElement.is(target)) 
+      {
+         // mark the popup as cancelled. This handles the case when the 
+         // timer has finished but the popup has not been 
+         // calculated yet, i.e. server_.followAiTopic() has not returned
+         popupCancelled_ = true;
+
+         // cancel a popup that is scheduled for later
+         popupTimer_.cancel();
+         
+         // then hide popup if necessary
+         if (popup_ != null)
+            popup_.hide();
+      }
+   }
+
+   private native String decodeURIComponent(String encoded) /*-{
+      return decodeURIComponent(encoded);
+   }-*/;
+
+   private void handleClick(NativeEvent event)
+   {
+      if (popup_ != null)
+         popup_.hide();
+   }
+
+   private void aiNavigated(Document doc)
+   {
+      NodeList<Element> elements = doc.getElementsByTagName("a");
+      for (int i = 0; i < elements.getLength(); i++)
+      {
+         ElementEx a = (ElementEx) elements.getItem(i);
+         String href = a.getAttribute("href", 2);
+         if (href == null)
+            continue;
+
+         if (href.contains(":") || href.endsWith(".pdf"))
+         {
+            // external links
+            AnchorElement aElement = a.cast();
+            aElement.setTarget("_blank");
+         }
+         else
+         {
+            // Internal links need to be handled in JavaScript so that
+            // they can participate in virtual session history. This
+            // won't have any effect for right-click > Show in New Window
+            // but that's a good thing.
+            a.setAttribute(
+                  "onclick",
+                  "window.parent.aiNavigate(this.href); return false");
+         }
+      }
+
+      String effectiveTitle = getDocTitle(doc);
+      title_.setText(effectiveTitle);
+      this.fireEvent(new AiNavigateEvent(doc.getURL(), effectiveTitle));
+   }
+
+   private String getDocTitle(Document doc)
+   {
+      String docUrl = StringUtil.notNull(doc.getURL());
+      String docTitle = doc.getTitle();
+
+      String previewPrefix = new String("/ai/preview?file=");
+      int previewLoc = docUrl.indexOf(previewPrefix);
+      if (previewLoc != -1)
+      {
+         String file = StringUtil.substring(docUrl, previewLoc + previewPrefix.length());
+         file = URL.decodeQueryString(file);
+         FileSystemItem fsi = FileSystemItem.createFile(file);
+         docTitle = fsi.getName();
+      }
+      else if (StringUtil.isNullOrEmpty(docTitle))
+      {
+         String url = new String(docUrl);
+         url = url.split("\\?")[0];
+         url = url.split("#")[0];
+         String[] chunks = url.split("/");
+         docTitle = chunks[chunks.length - 1];
+      }
+
+      return docTitle;
+   }
+
+   private void unload()
+   {
+      title_.setText("");
+   }
+
+   @Override
+   protected Toolbar createMainToolbar()
+   {
+      Toolbar toolbar = new Toolbar(constants_.aiTabLabel());
+
+      toolbar.addLeftWidget(commands_.aiBack().createToolbarButton());
+      toolbar.addLeftWidget(commands_.aiForward().createToolbarButton());
+      toolbar.addLeftWidget(commands_.aiHome().createToolbarButton());
+      toolbar.addLeftSeparator();
+      if (!Desktop.isDesktop())
+      {
+         // QtWebEngine doesn't currently support window.print(); see:
+         // https://bugreports.qt.io/browse/QTBUG-53745
+         toolbar.addLeftWidget(commands_.printAi().createToolbarButton());
+         toolbar.addLeftSeparator();
+      }
+      toolbar.addLeftWidget(commands_.aiPopout().createToolbarButton());
+
+      searchWidget_ = searchProvider_.get().getSearchWidget();
+      toolbar.addRightWidget((Widget)searchWidget_);
+
+      toolbar.addRightSeparator();
+
+      ToolbarButton refreshButton = commands_.refreshAi().createToolbarButton();
+      refreshButton.addStyleName(ThemeStyles.INSTANCE.refreshToolbarButton());
+      toolbar.addRightWidget(refreshButton);
+
+      return toolbar;
+   }
+
+   @Override
+   protected SecondaryToolbar createSecondaryToolbar()
+   {
+      SecondaryToolbar toolbar = new SecondaryToolbar(constants_.aiTabSecondLabel());
+
+      title_ = new Label();
+      title_.addStyleName(RES.styles().topicTitle());
+      toolbar.addLeftPopupMenu(title_, history_.getMenu());
+
+      ThemeStyles styles = ThemeStyles.INSTANCE;
+      toolbar.getWrapper().addStyleName(styles.tallerToolbarWrapper());
+
+      final SmallButton btnNext = new SmallButton("&gt;", true);
+      btnNext.getElement().setAttribute("aria-label", constants_.findNextLabel());
+      btnNext.setTitle(constants_.findNextLabel());
+      btnNext.addStyleName(RES.styles().topicNavigationButton());
+      btnNext.setVisible(false);
+      btnNext.addClickHandler(new ClickHandler() {
+         @Override
+         public void onClick(ClickEvent event)
+                                           {
+                                              findNext();
+                                                         }
+      });
+
+      final SmallButton btnPrev = new SmallButton("&lt;", true);
+      btnPrev.getElement().setAttribute("aria-label", constants_.findPreviousLabel());
+      btnPrev.setTitle(constants_.findPreviousLabel());
+      btnPrev.addStyleName(RES.styles().topicNavigationButton());
+      btnPrev.setVisible(false);
+      btnPrev.addClickHandler(new ClickHandler() {
+         @Override
+         public void onClick(ClickEvent event)
+                                           {
+                                              findPrev();
+                                                         }
+      });
+
+
+      findTextBox_ = new FindTextBox(constants_.findInTopicLabel());
+      findTextBox_.addStyleName(RES.styles().findTopicTextbox());
+      findTextBox_.setOverrideWidth(90);
+      ElementIds.assignElementId(findTextBox_, ElementIds.SW_AI_FIND_IN_TOPIC);
+      toolbar.addLeftWidget(findTextBox_);
+      findTextBox_.addKeyUpHandler(new KeyUpHandler() {
+
+         @Override
+         public void onKeyUp(KeyUpEvent event)
+         {
+            // ignore modifier key release
+            if (event.getNativeKeyCode() == KeyCodes.KEY_CTRL ||
+                event.getNativeKeyCode() == KeyCodes.KEY_ALT ||
+                event.getNativeKeyCode() == KeyCodes.KEY_SHIFT)
+            {
+               return;
+            }
+
+            WindowEx contentWindow = getContentWindow();
+            if (contentWindow != null)
+            {
+               // escape means exit find mode and put focus
+               // into the main content window
+               if (event.getNativeKeyCode() == KeyCodes.KEY_ESCAPE)
+               {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  clearTerm();
+                  contentWindow.focus();
+               }
+               else
+               {
+                  // prevent two enter keys in rapid succession from
+                  // minimizing or maximizing the ai pane
+                  if (event.getNativeKeyCode() == KeyCodes.KEY_ENTER)
+                  {
+                     event.preventDefault();
+                     event.stopPropagation();
+                  }
+
+                  // check for term
+                  String term = findTextBox_.getValue().trim();
+
+                  int modifier = KeyboardShortcut.getModifierValue(event.getNativeEvent());
+                  boolean isShift = modifier == KeyboardShortcut.SHIFT;
+
+                  // if there is a term then search for it
+                  if (term.length() > 0)
+                  {
+                     // make buttons visible
+                     setButtonVisibility(true);
+
+                     // perform the find (check for incremental)
+                     if (isIncrementalFindSupported())
+                     {
+                        boolean incremental =
+                         !event.isAnyModifierKeyDown() &&
+                         (event.getNativeKeyCode() != KeyCodes.KEY_ENTER);
+
+                        performFind(term, !isShift, incremental);
+                     }
+                     else
+                     {
+                        if (event.getNativeKeyCode() == KeyCodes.KEY_ENTER)
+                           performFind(term, !isShift, false);
+                     }
+                  }
+
+                  // no term means clear term and remove selection
+                  else
+                  {
+                     if (isIncrementalFindSupported())
+                     {
+                        clearTerm();
+                        contentWindow.removeSelection();
+                     }
+                  }
+               }
+            }
+         }
+
+         private void clearTerm()
+         {
+            findTextBox_.setValue("");
+            setButtonVisibility(false);
+         }
+
+         private void setButtonVisibility(final boolean visible)
+         {
+            Scheduler.get().scheduleDeferred(new ScheduledCommand() {
+               @Override
+               public void execute()
+               {
+                  btnNext.setVisible(visible);
+                  btnPrev.setVisible(visible);
+               }
+            });
+         }
+      });
+
+      findTextBox_.addKeyDownHandler(new KeyDownHandler() {
+
+         @Override
+         public void onKeyDown(KeyDownEvent event)
+         {
+            // we handle these directly so prevent the browser
+            // from handling them
+            if (event.getNativeKeyCode() == KeyCodes.KEY_ESCAPE ||
+                event.getNativeKeyCode() == KeyCodes.KEY_ENTER)
+            {
+               event.preventDefault();
+               event.stopPropagation();
+            }
+         }
+
+      });
+
+      if (isIncrementalFindSupported())
+      {
+         btnPrev.getElement().getStyle().setMarginRight(3, Unit.PX);
+         toolbar.addLeftWidget(btnPrev);
+         toolbar.addLeftWidget(btnNext);
+      }
+
+      return toolbar;
+   }
+
+   private String getTerm()
+   {
+      return findTextBox_.getValue().trim();
+   }
+
+   private void findNext()
+   {
+      String term = getTerm();
+      if (term.length() > 0)
+         performFind(term, true, false);
+   }
+
+   private void findPrev()
+   {
+      String term = getTerm();
+      if (term.length() > 0)
+         performFind(term, false, false);
+   }
+
+   private void performFind(String term,
+                            boolean forwards,
+                            boolean incremental)
+   {
+      WindowEx contentWindow = getContentWindow();
+      if (contentWindow == null)
+         return;
+
+      // if this is an incremental search then reset the selection first
+      if (incremental)
+         contentWindow.removeSelection();
+
+      contentWindow.find(term, false, !forwards, true, false);
+   }
+
+   // Firefox changes focus during our typeahead search (it must take
+   // focus when you set the selection into the iframe) which breaks
+   // typeahead entirely. rather than code around this we simply
+   // disable it for Firefox
+   private boolean isIncrementalFindSupported()
+   {
+      return !BrowseCap.isFirefox();
+   }
+
+   @Override
+   public String getUrl()
+   {
+      String url = null;
+      try
+      {
+         if (getIFrameEx() != null && getIFrameEx().getContentWindow() != null)
+            url = getIFrameEx().getContentWindow().getLocationHref();
+      }
+      catch (Exception e)
+      {
+         // attempting to get the URL can throw with a DOM security exception if
+         // the current URL is on another domain--in this case we'll just want
+         // to return null, so eat the exception.
+      }
+      return url;
+   }
+
+   @Override
+   public String getDocTitle()
+   {
+      return getIFrameEx().getContentDocument().getTitle();
+   }
+
+   @Override
+   public void focusSearchAi()
+   {
+      if (searchWidget_ != null)
+         FocusHelper.setFocusDeferred(searchWidget_);
+   }
+
+   @Override
+   public void showAi(String url)
+   {
+      ensureWidget();
+      bringToFront();
+      navStack_.navigate(url);
+      setLocation(url, Point.create(0, 0));
+      navigated_ = true;
+   }
+
+   private void setLocation(final String url,
+                            final Point scrollPos)
+   {
+      // allow subsequent calls to setLocation to override any previous
+      // call (necessary so two consecutive calls like we get during
+      // some startup scenarios don't result in the first url displaying
+      // rather than the second)
+      targetUrl_ = url;
+
+      RepeatingCommand navigateCommand = new RepeatingCommand() {
+
+         @SuppressWarnings("unused")
+         private HandlerRegistration handler_ = frame_.addLoadHandler(new LoadHandler()
+         {
+            @Override
+            public void onLoad(LoadEvent event)
+            {
+               WindowEx contentWindow = getIFrameEx().getContentWindow();
+               contentWindow.setScrollPosition(scrollPos);
+               setWindowScrollHandler(contentWindow);
+
+               handler_.removeHandler();
+               handler_ = null;
+            }
+         });
+
+         @Override
+         public boolean execute()
+         {
+            if (getIFrameEx() == null)
+               return true;
+
+            if (getIFrameEx().getContentWindow() == null)
+               return true;
+
+            if (targetUrl_ == getUrl())
+            {
+               getIFrameEx().getContentWindow().reload();
+            }
+            else
+            {
+               frame_.setUrl(targetUrl_);
+               replaceFrameUrl(frame_.getIFrame().cast(), targetUrl_);
+            }
+
+            return false;
+         }
+      };
+
+      if (navigateCommand.execute())
+      {
+         Scheduler.get().scheduleFixedDelay(navigateCommand, 100);
+      }
+   }
+
+   @Override
+   public void refresh()
+   {
+      String url = getUrl();
+      if (url != null)
+         setLocation(url, Point.create(0, 0));
+   }
+
+   private WindowEx getContentWindow()
+   {
+      return getIFrameEx() != null ? getIFrameEx().getContentWindow() : null;
+   }
+
+   @Override
+   public void back()
+   {
+      VirtualHistory.Data back = navStack_.back();
+      if (back != null)
+         setLocation(back.getUrl(), back.getScrollPosition());
+   }
+
+   @Override
+   public void forward()
+   {
+      VirtualHistory.Data fwd = navStack_.forward();
+      if (fwd != null)
+         setLocation(fwd.getUrl(), fwd.getScrollPosition());
+   }
+
+   @Override
+   public void print()
+   {
+      getContentWindow().focus();
+      getContentWindow().print();
+   }
+
+   @Override
+   public void popout()
+   {
+      String href = getContentWindow().getLocationHref();
+      NewWindowOptions options = new NewWindowOptions();
+      options.setName("aipanepopout_" + popoutCount_++);
+      globalDisplay_.openWebMinimalWindow(href, false, 0, 0, options);
+   }
+
+   @Override
+   public void focus()
+   {
+      WindowEx contentWindow = getContentWindow();
+      if (contentWindow != null)
+         contentWindow.focus();
+   }
+
+   @Override
+   public HandlerRegistration addAiNavigateHandler(AiNavigateEvent.Handler handler)
+   {
+      return addHandler(handler, AiNavigateEvent.TYPE);
+   }
+
+
+   @Override
+   public LinkMenu getHistory()
+   {
+      return history_;
+   }
+
+   @Override
+   public boolean navigated()
+   {
+      return navigated_;
+   }
+
+   private IFrameElementEx getIFrameEx()
+   {
+      return frame_.getElement().cast();
+   }
+
+   private void findInTopic(String term, CanFocus findInputSource)
+   {
+      // get content window
+      WindowEx contentWindow = getContentWindow();
+      if (contentWindow == null)
+         return;
+
+      if (!contentWindow.find(term, false, false, true, false))
+      {
+         globalDisplay_.showMessage(MessageDialog.INFO,
+               constants_.findInTopicLabel(),
+               constants_.noOccurrencesFoundMessage(),
+               findInputSource);
+      }
+   }
+
+   private final native void replaceFrameUrl(JavaScriptObject frame, String url) /*-{
+      frame.contentWindow.setTimeout(function() {
+         this.location.replace(url);
+      }, 0);
+   }-*/;
+
+   private final native void setWindowScrollHandler(WindowEx window)
+   /*-{
+      var self = this;
+      window.onscroll = $entry(function() {
+         self.@org.rstudio.studio.client.workbench.views.ai.AiPane::onScroll()();
+      });
+   }-*/;
+
+   private void onScroll()
+   {
+      scrollTimer_.schedule(50);
+   }
+
+   public interface Styles extends CssResource
+   {
+      String findTopicTextbox();
+      String topicNavigationButton();
+      String topicTitle();
+   }
+
+   public interface EditorStyles extends CssResource
+   {
+   }
+
+   public interface Resources extends ClientBundle
+   {
+      @Source("AiPane.css")
+      Styles styles();
+
+      @Source("AiPaneEditorStyles.css")
+      EditorStyles editorStyles();
+   }
+
+   private static final Resources RES = GWT.create(Resources.class);
+   static { RES.styles().ensureInjected(); }
+
+   private UserPrefs prefs_;
+
+   private final VirtualHistory navStack_;
+   private final ToolbarLinkMenu history_;
+   private Label title_;
+   private RStudioThemedFrame frame_;
+   private FindTextBox findTextBox_;
+   private final Provider<AiSearch> searchProvider_;
+   private GlobalDisplay globalDisplay_;
+   private final Commands commands_;
+   private boolean navigated_;
+   private boolean initialized_;
+   private String targetUrl_;
+   private Point scrollPos_;
+   private Timer scrollTimer_;
+   private boolean selected_;
+   private static int popoutCount_ = 0;
+   private SearchDisplay searchWidget_;
+   private static final AiConstants constants_ = GWT.create(AiConstants.class);
+   private Server server_;
+   HyperlinkPopupPanel popup_;
+   Timer popupTimer_;
+   boolean popupCancelled_;
+
+   private static final Pattern AI_PATTERN = Pattern.create("^.*/ai/library/([^/]*)/ai/(.*)$", "");
 }

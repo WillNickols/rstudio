@@ -57,6 +57,10 @@ public class PackageInfo extends JavaScriptObject
       return "help/library/" + this.name + "/html/00Index.html";
    }-*/;
 
+   public final native String getAiUrl() /*-{
+      return "ai/library/" + this.name + "/html/00Index.html";
+   }-*/;
+
    public final native String getBrowseUrl() /*-{
       return this.browse_url;
    }-*/;

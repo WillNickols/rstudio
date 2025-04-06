@@ -216,6 +216,7 @@ const int kDeploymentRecordsUpdated = 198;
 const int kRunAutomation = 199;
 const int kConsoleWritePendingError = 200;
 const int kConsoleWritePendingWarning = 201;
+const int kShowAi = 202;
 
 }
 
@@ -250,7 +251,9 @@ std::string ClientEvent::typeName() const
          return "show_error_message";
       case client_events::kShowHelp: 
          return "show_help";
-      case client_events::kBrowseUrl: 
+      case client_events::kShowAi:
+         return "show_ai";
+      case client_events::kBrowseUrl:
          return "browse_url";
       case client_events::kShowEditor: 
          return "show_editor";

@@ -96,6 +96,67 @@ public class HyperlinkPopupPanel extends ThemedPopupPanel implements HyperlinkPo
         };
     }
 
+    public HyperlinkPopupPanel(AiPageShower hyperlink)
+    {
+        super();
+        aihyperlink_ = hyperlink;
+        autoConstrain_ = false;
+        setStylePrimaryName(ConsoleResources.INSTANCE.consoleStyles().completionPopup());
+
+        addCloseHandler(new CloseHandler<PopupPanel>()
+        {
+            @Override
+            public void onClose(CloseEvent<PopupPanel> event)
+            {
+                hide();
+            }
+        });
+
+        WindowEx.addBlurHandler(new BlurHandler()
+        {
+            @Override
+            public void onBlur(BlurEvent event)
+            {
+                hide();
+            }
+        });
+        
+        handler_ = new NativePreviewHandler()
+        {
+            @Override
+            public void onPreviewNativeEvent(NativePreviewEvent previewEvent)
+            {
+                // any click outside the container or ai popup should dismiss
+                if (previewEvent.getTypeInt() == Event.ONMOUSEDOWN)
+                {
+                    Element targetEl = previewEvent.getNativeEvent().getEventTarget().cast();
+                    if (!container_.getElement().isOrHasChild(targetEl) &&
+                        (container_ == null) || 
+                        (container_.getElement() == null) || 
+                        !container_.getElement().isOrHasChild(targetEl))
+                    {
+                        hide();
+                    }
+                }
+                
+                if (previewEvent.getTypeInt() == Event.ONKEYDOWN)
+                {
+                    NativeEvent event = previewEvent.getNativeEvent();
+                    int keyCode = event.getKeyCode();
+                    if (keyCode == KeyCodes.KEY_ESCAPE)
+                    {
+                        event.stopPropagation();
+                        hide();
+                    }
+                    else if (keyCode == KeyCodes.KEY_F1)
+                    {
+                        aihyperlink_.showAi();
+                    }
+                }
+            }
+        };
+    }
+
     public void setContent(Widget content)
     {
         if (current_ != null)
@@ -142,6 +203,7 @@ public class HyperlinkPopupPanel extends ThemedPopupPanel implements HyperlinkPo
     private final NativePreviewHandler handler_;
     private HandlerRegistration handlerRegistration_;
     private HelpPageShower hyperlink_;
+    private AiPageShower aihyperlink_;
    
     private static HyperlinkPopupPanel current_;
 }

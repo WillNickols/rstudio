@@ -157,6 +157,7 @@
 #include "modules/SessionDirty.hpp"
 #include "modules/SessionWorkbench.hpp"
 #include "modules/SessionHelp.hpp"
+#include "modules/SessionAi.hpp"
 #include "modules/SessionPlots.hpp"
 #include "modules/SessionPath.hpp"
 #include "modules/SessionPackages.hpp"
@@ -649,6 +650,7 @@ Error rInit(const rstudio::r::session::RInitInfo& rInitInfo)
       (modules::workbench::initialize)
       (modules::data::initialize)
       (modules::help::initialize)
+      (modules::ai::initialize)
       (modules::presentation::initialize)
       (modules::preview::initialize)
       (modules::plots::initialize)

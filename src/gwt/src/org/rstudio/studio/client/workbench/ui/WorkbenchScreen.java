@@ -71,6 +71,7 @@ import org.rstudio.studio.client.workbench.views.edit.Edit;
 import org.rstudio.studio.client.workbench.views.edit.Edit.Shim;
 import org.rstudio.studio.client.workbench.views.edit.events.ShowEditorEvent;
 import org.rstudio.studio.client.workbench.views.help.events.ActivateHelpEvent;
+import org.rstudio.studio.client.workbench.views.ai.events.ActivateAiEvent;
 import org.rstudio.studio.client.workbench.views.plots.PlotsTab;
 import org.rstudio.studio.client.workbench.views.source.events.LastSourceDocClosedEvent;
 
@@ -341,6 +342,12 @@ public class WorkbenchScreen extends Composite
       fireEventDelayed(new ActivateHelpEvent(), 200);
    }
    @Handler
+   void onActivateAi()
+   {
+      paneManager_.activateTab(Tab.Ai);
+      fireEventDelayed(new ActivateAiEvent(), 200);
+   }
+   @Handler
    void onActivateVcs() { paneManager_.activateTab(Tab.VCS); }
    @Handler
    void onActivateBuild() { paneManager_.activateTab(Tab.Build); }
@@ -352,8 +359,6 @@ public class WorkbenchScreen extends Composite
    void onActivateConnections() { paneManager_.activateTab(Tab.Connections); }
    @Handler
    void onActivateTutorial() { paneManager_.activateTab(Tab.Tutorial); }
-   @Handler
-   void onActivateAI() { paneManager_.activateTab(Tab.AI); }
    @Handler
    void onActivatePresentation2() 
    { 
@@ -379,6 +384,12 @@ public class WorkbenchScreen extends Composite
       fireEventDelayed(new ActivateHelpEvent(), 200);
    }
    @Handler
+   void onLayoutZoomAi()
+   {
+      paneManager_.zoomTab(Tab.Ai);
+      fireEventDelayed(new ActivateAiEvent(), 200);
+   }
+   @Handler
    void onLayoutZoomVcs() { paneManager_.zoomTab(Tab.VCS); }
    @Handler
    void onLayoutZoomBuild() { paneManager_.zoomTab(Tab.Build); }
@@ -388,8 +399,6 @@ public class WorkbenchScreen extends Composite
    void onLayoutZoomConnections() { paneManager_.zoomTab(Tab.Connections); }
    @Handler
    void onLayoutZoomTutorial() { paneManager_.zoomTab(Tab.Tutorial); }
-   @Handler
-   void onLayoutZoomAI() { paneManager_.zoomTab(Tab.AI); }
    @Handler
    void onLayoutZoomPresentation2() { paneManager_.zoomTab(Tab.Presentations); }
 

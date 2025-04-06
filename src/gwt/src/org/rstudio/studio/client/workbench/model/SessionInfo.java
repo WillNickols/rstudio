@@ -559,6 +559,10 @@ public class SessionInfo extends JavaScriptObject
       return this.show_help_home;
    }-*/;
 
+   public final native boolean getShowAiHome() /*-{
+      return this.show_ai_home;
+   }-*/;
+
    public final native boolean getMultiSession() /*-{
       return this.multi_session;
    }-*/;

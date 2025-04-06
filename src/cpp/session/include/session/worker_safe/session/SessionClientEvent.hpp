@@ -36,6 +36,7 @@ extern const int kConsoleWriteOutput;
 extern const int kConsoleWriteError;
 extern const int kShowErrorMessage;
 extern const int kShowHelp;
+extern const int kShowAi;
 extern const int kBrowseUrl;
 extern const int kShowEditor;
 extern const int kChooseFile;

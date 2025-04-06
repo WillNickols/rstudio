@@ -307,7 +307,7 @@ See `/src/gwt/tools/i18n-helpers/README.md`.
             <cmd refid="layoutZoomViewer"/>
             <cmd refid="layoutZoomVcs"/>
             <cmd refid="layoutZoomTutorial"/>
-            <cmd refid="layoutZoomAI"/>
+            <cmd refid="layoutZoomAi"/>
             <cmd refid="layoutZoomBuild"/>
             <cmd refid="layoutZoomConnections"/>
             <cmd refid="layoutZoomPresentation2"/>
@@ -351,6 +351,7 @@ See `/src/gwt/tools/i18n-helpers/README.md`.
          <cmd refid="activateConnections"/>
          <cmd refid="activatePresentation2"/>
          <cmd refid="activateTutorial"/>
+         <cmd refid="activateAi"/>
          <cmd refid="activateBackgroundJobs"/>
          <cmd refid="activateWorkbenchJobs"/>
          <menu label="Show Other _Panes">
@@ -1451,6 +1452,11 @@ See `/src/gwt/tools/i18n-helpers/README.md`.
         menuLabel="Move Focus to _Help"
         windowMode="main"/>
 
+   <cmd id="activateAi"
+        label="Show Ai Pane"
+        menuLabel="Move Focus to _Ai"
+        windowMode="main"/>
+
    <cmd id="activateVcs"
         label="Show VCS Pane"
         menuLabel="Show _Vcs"
@@ -1590,6 +1596,12 @@ See `/src/gwt/tools/i18n-helpers/README.md`.
         menuLabel="Zoom _Help"
         windowMode="main"/>
 
+   <cmd id="layoutZoomAi"
+        checkable="true"
+        label="Zoom Ai"
+        menuLabel="Zoom _Ai"
+        windowMode="main"/>
+
    <cmd id="layoutZoomVcs"
         checkable="true"
         label="Zoom VCS"
@@ -1602,10 +1614,10 @@ See `/src/gwt/tools/i18n-helpers/README.md`.
         menuLabel="Zoom _Tutorial"
         windowMode="main"/>
 
-   <cmd id="layoutZoomAI"
+   <cmd id="layoutZoomAi"
          checkable="true"
-         label="Zoom AI"
-         menuLabel="Zoom _k AI"
+         label="Zoom Ai"
+         menuLabel="Zoom _k Ai"
          windowMode="main"/>
 
    <cmd id="layoutZoomBuild"
@@ -2046,6 +2058,12 @@ See `/src/gwt/tools/i18n-helpers/README.md`.
         label="Show Help for Current Function"
         menuLabel="Go To _Help"
         desc="Go to help for the currently selected function"
+        context="help"/>
+
+   <cmd id ="goToAi"
+        label="Show Ai for Current Function"
+        menuLabel="Go To _Ai"
+        desc="Go to Ai for the currently selected function"
         context="help"/>
 
    <cmd id ="goToDefinition"
@@ -3414,6 +3432,53 @@ See `/src/gwt/tools/i18n-helpers/README.md`.
         buttonLabel=""
         desc="Refresh topic"
         context="help"/>
+
+   <cmd id="aiBack"
+        label="Previous Ai Topic"
+        buttonLabel=""
+        context="ai"
+        desc="Previous topic"/>
+
+   <cmd id="aiForward"
+        label="Next Ai Topic"
+        buttonLabel=""
+        desc="Next topic"/>
+
+   <cmd id="aiHome"
+        label="Show R Ai"
+        menuLabel="R _Ai"
+        buttonLabel=""
+        desc="Show R Ai"
+        windowMode="main"/>
+
+   <cmd id="aiSearch"
+        menuLabel="Search R A_I"
+        windowMode="main"/>
+
+   <cmd id="printAi"
+        label="Print Ai Topic"
+        buttonLabel=""
+        desc="Print topic"
+        rebindable="false"/>
+
+   <cmd id="clearAiHistory"
+        label="Clear Ai History"
+        menuLabel="Clear history"
+        desc="Clear history"
+        rebindable="false"/>
+
+   <cmd id="aiPopout"
+        label="Show Ai in New Window"
+        buttonLabel=""
+        desc="Show in new window"
+        context="ai"/>
+
+   <cmd id="refreshAi"
+        label="Refresh Ai Topic"
+        menuLabel="Refresh"
+        buttonLabel=""
+        desc="Refresh topic"
+        context="ai"/>
 
    <cmd id="tutorialPopout"
         buttonLabel=""

@@ -632,6 +632,12 @@ public interface CmdConstants extends Constants {
     @DefaultStringValue("Move Focus to _Help") // $NON-NLS-1$
     String activateHelpMenuLabel();
     
+    // activateAi
+    @DefaultStringValue("Show Ai Pane") // $NON-NLS-1$
+    String activateAiLabel();
+    @DefaultStringValue("Move Focus to _Ai") // $NON-NLS-1$
+    String activateAiMenuLabel();
+    
     // activateVcs
     @DefaultStringValue("Show VCS Pane") // $NON-NLS-1$
     String activateVcsLabel();
@@ -788,6 +794,12 @@ public interface CmdConstants extends Constants {
     @DefaultStringValue("Zoom _Help") // $NON-NLS-1$
     String layoutZoomHelpMenuLabel();
     
+    // layoutZoomAi
+    @DefaultStringValue("Zoom Ai") // $NON-NLS-1$
+    String layoutZoomAiLabel();
+    @DefaultStringValue("Zoom _Ai") // $NON-NLS-1$
+    String layoutZoomAiMenuLabel();
+    
     // layoutZoomVcs
     @DefaultStringValue("Zoom VCS") // $NON-NLS-1$
     String layoutZoomVcsLabel();
@@ -799,13 +811,7 @@ public interface CmdConstants extends Constants {
     String layoutZoomTutorialLabel();
     @DefaultStringValue("Zoom _Tutorial") // $NON-NLS-1$
     String layoutZoomTutorialMenuLabel();
-    
-    // layoutZoomAI
-    @DefaultStringValue("Zoom AI") // $NON-NLS-1$
-    String layoutZoomAILabel();
-    @DefaultStringValue("Zoom _k AI") // $NON-NLS-1$
-    String layoutZoomAIMenuLabel();
-    
+        
     // layoutZoomBuild
     @DefaultStringValue("Zoom Build") // $NON-NLS-1$
     String layoutZoomBuildLabel();
@@ -1345,6 +1351,14 @@ public interface CmdConstants extends Constants {
     String goToHelpMenuLabel();
     @DefaultStringValue("Go to help for the currently selected function") // $NON-NLS-1$
     String goToHelpDesc();
+    
+    // goToAi
+    @DefaultStringValue("Show Ai for Current Function") // $NON-NLS-1$
+    String goToAiLabel();
+    @DefaultStringValue("Go To _Ai") // $NON-NLS-1$
+    String goToAiMenuLabel();
+    @DefaultStringValue("Go to Ai for the currently selected function") // $NON-NLS-1$
+    String goToAiDesc();
     
     // goToDefinition
     @DefaultStringValue("_Go To Function Definition") // $NON-NLS-1$
@@ -3049,6 +3063,70 @@ public interface CmdConstants extends Constants {
     String refreshHelpMenuLabel();
     @DefaultStringValue("Refresh topic") // $NON-NLS-1$
     String refreshHelpDesc();
+    
+    // aiBack
+    @DefaultStringValue("Previous Ai Topic") // $NON-NLS-1$
+    String aiBackLabel();
+    @DefaultStringValue("") // $NON-NLS-1$
+    String aiBackButtonLabel();
+    @DefaultStringValue("Previous topic") // $NON-NLS-1$
+    String aiBackDesc();
+    
+    // aiForward
+    @DefaultStringValue("Next Ai Topic") // $NON-NLS-1$
+    String aiForwardLabel();
+    @DefaultStringValue("") // $NON-NLS-1$
+    String aiForwardButtonLabel();
+    @DefaultStringValue("Next topic") // $NON-NLS-1$
+    String aiForwardDesc();
+    
+    // aiHome
+    @DefaultStringValue("Show R Ai") // $NON-NLS-1$
+    String aiHomeLabel();
+    @DefaultStringValue("") // $NON-NLS-1$
+    String aiHomeButtonLabel();
+    @DefaultStringValue("R _Ai") // $NON-NLS-1$
+    String aiHomeMenuLabel();
+    @DefaultStringValue("Show R Ai") // $NON-NLS-1$
+    String aiHomeDesc();
+    
+    // aiSearch
+    @DefaultStringValue("Search R A_I") // $NON-NLS-1$
+    String aiSearchMenuLabel();
+    
+    // printAi
+    @DefaultStringValue("Print Ai Topic") // $NON-NLS-1$
+    String printAiLabel();
+    @DefaultStringValue("") // $NON-NLS-1$
+    String printAiButtonLabel();
+    @DefaultStringValue("Print topic") // $NON-NLS-1$
+    String printAiDesc();
+    
+    // clearAiHistory
+    @DefaultStringValue("Clear Ai History") // $NON-NLS-1$
+    String clearAiHistoryLabel();
+    @DefaultStringValue("Clear history") // $NON-NLS-1$
+    String clearAiHistoryMenuLabel();
+    @DefaultStringValue("Clear history") // $NON-NLS-1$
+    String clearAiHistoryDesc();
+    
+    // aiPopout
+    @DefaultStringValue("Show Ai in New Window") // $NON-NLS-1$
+    String aiPopoutLabel();
+    @DefaultStringValue("") // $NON-NLS-1$
+    String aiPopoutButtonLabel();
+    @DefaultStringValue("Show in new window") // $NON-NLS-1$
+    String aiPopoutDesc();
+    
+    // refreshAi
+    @DefaultStringValue("Refresh Ai Topic") // $NON-NLS-1$
+    String refreshAiLabel();
+    @DefaultStringValue("") // $NON-NLS-1$
+    String refreshAiButtonLabel();
+    @DefaultStringValue("Refresh") // $NON-NLS-1$
+    String refreshAiMenuLabel();
+    @DefaultStringValue("Refresh topic") // $NON-NLS-1$
+    String refreshAiDesc();
     
     // tutorialPopout
     @DefaultStringValue("") // $NON-NLS-1$

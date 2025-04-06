@@ -47,6 +47,7 @@ public class WorkbenchListManager
       listContexts_.put(PLOT_PUBLISH_MRU, new ListContext(PLOT_PUBLISH_MRU));
       listContexts_.put(COMMAND_PALETTE_MRU, new ListContext(COMMAND_PALETTE_MRU));
       listContexts_.put(HELP_HISTORY, new ListContext(HELP_HISTORY));
+      listContexts_.put(AI_HISTORY, new ListContext(AI_HISTORY));
       listContexts_.put(USER_DICTIONARY, new ListContext(USER_DICTIONARY));
 
       events.addHandler(SessionInitEvent.TYPE, (SessionInitEvent sie) ->
@@ -57,6 +58,7 @@ public class WorkbenchListManager
          updateList(PLOT_PUBLISH_MRU, lists);
          updateList(COMMAND_PALETTE_MRU, lists);
          updateList(HELP_HISTORY, lists);
+         updateList(AI_HISTORY, lists);
          updateList(USER_DICTIONARY, lists);
       });
 
@@ -79,6 +81,11 @@ public class WorkbenchListManager
    public WorkbenchList getHelpHistoryList()
    {
       return listContexts_.get(HELP_HISTORY);
+   }
+
+   public WorkbenchList getAiHistoryList()
+   {
+      return listContexts_.get(AI_HISTORY);
    }
 
    public WorkbenchList getUserDictionaryList()
@@ -193,5 +200,6 @@ public class WorkbenchListManager
    private static final String PLOT_PUBLISH_MRU = "plot_publish_mru";
    private static final String COMMAND_PALETTE_MRU = "command_palette_mru";
    private static final String HELP_HISTORY = "help_history_links";
+   private static final String AI_HISTORY = "ai_history_links";
    private static final String USER_DICTIONARY = "user_dictionary";
 }

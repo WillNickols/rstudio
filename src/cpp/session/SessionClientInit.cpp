@@ -570,6 +570,7 @@ void handleClientInit(const boost::function<void()>& initFunction,
    // don't show help home until we figure out a sensible heuristic
    // sessionInfo["show_help_home"] = options.showHelpHome();
    sessionInfo["show_help_home"] = false;
+   sessionInfo["show_ai_home"] = false;
 
    sessionInfo["multi_session"] = options.multiSession();
 

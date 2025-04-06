@@ -97,7 +97,7 @@ public class PaneManager
    public interface Binder extends CommandBinder<Commands, PaneManager> {}
 
    public enum Tab {
-      History, Files, Plots, Packages, Help, VCS, Tutorial, AI, Build, Connections,
+      History, Files, Plots, Packages, Help, VCS, Tutorial, Ai, Build, Connections,
       Presentation, Presentations, Environment, Viewer, Source, Console, SourceColumn
    }
 
@@ -1049,6 +1049,12 @@ public class PaneManager
          onActivation = () -> commands_.activateHelp().execute();
       }
 
+      // Ensure focus is sent to Ai iframe on activation.
+      if (maximizedTab_.equals(Tab.Ai))
+      {
+         onActivation = () -> commands_.activateAi().execute();
+      }
+
       resizeHorizontally(rightTargetSize, leftTargets, onActivation);
    }
 
@@ -1350,7 +1356,7 @@ public class PaneManager
             return vcsTab_;
          case Tutorial:
             return tutorialTab_;
-         case AI:
+         case Ai:
             return aiTab_;
          case Build:
             return buildTab_;
@@ -1911,7 +1917,7 @@ public class PaneManager
       if (name.equalsIgnoreCase(TUTORIAL_PANE))
          return Tab.Tutorial;
       if (name.equalsIgnoreCase(AI_PANE))
-         return Tab.AI;
+         return Tab.Ai;
       if (name.equalsIgnoreCase(BUILD_PANE))
          return Tab.Build;
       if (name.equalsIgnoreCase(PRESENTATION_PANE))
@@ -1953,7 +1959,7 @@ public class PaneManager
       case SourceColumn: return commands_.layoutZoomSource();
       case VCS:          return commands_.layoutZoomVcs();
       case Tutorial:     return commands_.layoutZoomTutorial();
-      case AI:     return commands_.layoutZoomAI();
+      case Ai:           return commands_.layoutZoomAi();
       case Viewer:       return commands_.layoutZoomViewer();
       case Connections:  return commands_.layoutZoomConnections();
       case Presentations: return commands_.layoutZoomPresentation2();
@@ -2020,7 +2026,7 @@ public class PaneManager
       commands.add(commands_.layoutZoomSource());
       commands.add(commands_.layoutZoomVcs());
       commands.add(commands_.layoutZoomTutorial());
-      commands.add(commands_.layoutZoomAI());
+      commands.add(commands_.layoutZoomAi());
       commands.add(commands_.layoutZoomViewer());
       commands.add(commands_.layoutZoomConnections());
       commands.add(commands_.layoutZoomPresentation2());
@@ -2148,7 +2154,7 @@ public class PaneManager
    public static final String LAUNCHER_PANE = "Launcher"; //$NON-NLS-1$
    public static final String DATA_OUTPUT_PANE = "Data Output"; //$NON-NLS-1$
    public static final String TUTORIAL_PANE = "Tutorial"; //$NON-NLS-1$
-   public static final String AI_PANE = "AI"; //$NON-NLS-1$
+   public static final String AI_PANE = "Ai"; //$NON-NLS-1$
    public static final String SOURCE_COLUMN = "SourceColumn"; //$NON-NLS-1$
    public static final String FIND_PANE = "Find"; //$NON-NLS-1$
    public static final String MARKERS_PANE = "Markers"; //$NON-NLS-1$

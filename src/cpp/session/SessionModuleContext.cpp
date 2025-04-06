@@ -1448,6 +1448,15 @@ std::string rLocalHelpPort()
    return port;
 }
 
+std::string rLocalAiPort()
+{
+   std::string port;
+   Error error = r::exec::RFunction(".rs.httpdPort").call(&port);
+   if (error)
+      LOG_ERROR(error);
+   return port;
+}
+
 std::vector<FilePath> getLibPaths()
 {
    std::vector<std::string> libPathsString;

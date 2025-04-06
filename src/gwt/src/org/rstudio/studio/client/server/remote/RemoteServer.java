@@ -202,6 +202,7 @@ import org.rstudio.studio.client.workbench.views.environment.model.RObject;
 import org.rstudio.studio.client.workbench.views.files.model.DirectoryListing;
 import org.rstudio.studio.client.workbench.views.files.model.FileUploadToken;
 import org.rstudio.studio.client.workbench.views.help.model.HelpInfo;
+import org.rstudio.studio.client.workbench.views.ai.model.AiInfo;
 import org.rstudio.studio.client.workbench.views.history.model.HistoryEntry;
 import org.rstudio.studio.client.workbench.views.jobs.model.JobLaunchSpec;
 import org.rstudio.studio.client.workbench.views.jobs.model.JobOutput;
@@ -1598,6 +1599,78 @@ public class RemoteServer implements Server
                   null);
    }
 
+   public void getAi(String topic,
+                       String packageName,
+                       int type,
+                       ServerRequestCallback<AiInfo> requestCallback)
+   {
+      JSONArray params = new JSONArray();
+      params.set(0, new JSONString(topic));
+      if (packageName != null)
+         params.set(1, new JSONString(packageName));
+      else
+         params.set(1, JSONNull.getInstance());
+      params.set(2, new JSONNumber(type));
+
+      sendRequest(RPC_SCOPE, GET_AI, params, requestCallback);
+   }
+
+   public void getCustomAi(String aiHandler,
+                             String topic,
+                             String source,
+                             String language,
+                             ServerRequestCallback<AiInfo.Custom> requestCallback)
+   {
+      JSONArray params = new JSONArray();
+      params.set(0, new JSONString(aiHandler));
+      params.set(1, new JSONString(topic));
+      params.set(2, new JSONString(source));
+      params.set(3, new JSONString(language));
+      sendRequest(RPC_SCOPE, GET_CUSTOM_AI, params, requestCallback);
+   }
+
+   public void getCustomParameterAi(String aiHandler,
+                                      String source,
+                                      String language,
+                                      ServerRequestCallback<AiInfo.Custom> requestCallback)
+   {
+      JSONArray params = new JSONArray();
+      params.set(0, new JSONString(aiHandler));
+      params.set(1, new JSONString(source));
+      params.set(2, new JSONString(language));
+      sendRequest(RPC_SCOPE, GET_CUSTOM_PARAMETER_AI, params, requestCallback);
+   }
+
+
+   public void showAiTopic(String what, String from, int type)
+   {
+      JSONArray params = new JSONArray();
+      params.set(0, new JSONString(what));
+      params.set(1, from != null
+                       ? new JSONString(from)
+                       : JSONNull.getInstance());
+      params.set(2, new JSONNumber(type));
+
+      sendRequest(RPC_SCOPE,
+                  SHOW_AI_TOPIC,
+                  params,
+                  null);
+   }
+
+   public void showCustomAiTopic(String aiHandler,
+                                   String topic,
+                                   String source)
+   {
+      JSONArray params = new JSONArray();
+      params.set(0, new JSONString(aiHandler));
+      params.set(1, new JSONString(topic));
+      params.set(2, new JSONString(source));
+      sendRequest(RPC_SCOPE,
+                  SHOW_CUSTOM_AI_TOPIC,
+                  params,
+                  null);
+   }
+
    public void getVignetteTitle(String topic,
                                 String pkgName, 
                                 ServerRequestCallback<String> requestCallback)
@@ -1643,6 +1716,18 @@ public class RemoteServer implements Server
 
       sendRequest(RPC_SCOPE,
                   FOLLOW_HELP_TOPIC,
+                  params,
+                  requestCallback);
+   }
+
+   public void followAiTopic(String url, ServerRequestCallback<JsArrayString> requestCallback)
+   {
+      JSONArray params = new JSONArrayBuilder()
+            .add(url)
+            .get();
+
+      sendRequest(RPC_SCOPE,
+                  FOLLOW_AI_TOPIC,
                   params,
                   requestCallback);
    }
@@ -6985,6 +7070,13 @@ public class RemoteServer implements Server
    private static final String GET_VIGNETTE_DESCRIPTION = "get_vignette_description";
    private static final String SHOW_VIGNETTE = "show_vignette";
    private static final String FOLLOW_HELP_TOPIC = "follow_help_topic";
+
+   private static final String GET_AI = "get_ai";
+   private static final String SHOW_AI_TOPIC = "show_ai_topic";
+   private static final String GET_CUSTOM_AI = "get_custom_ai";
+   private static final String GET_CUSTOM_PARAMETER_AI = "get_custom_parameter_ai";
+   private static final String SHOW_CUSTOM_AI_TOPIC = "show_custom_ai_topic";
+   private static final String FOLLOW_AI_TOPIC = "follow_ai_topic";
 
    private static final String STAT = "stat";
    private static final String IS_TEXT_FILE = "is_text_file";
