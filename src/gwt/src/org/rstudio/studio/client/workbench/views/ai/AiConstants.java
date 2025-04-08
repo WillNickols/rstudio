@@ -17,38 +17,38 @@ package org.rstudio.studio.client.workbench.views.ai;
 public interface AiConstants extends com.google.gwt.i18n.client.Messages {
 
     /**
-     * Translated "Ai".
+     * Translated "AI".
      *
-     * @return translated "Ai"
+     * @return translated "AI"
      */
-    @DefaultMessage("Ai")
+    @DefaultMessage("AI")
     @Key("aiText")
     String aiText();
 
     /**
-     * Translated "Ai Pane".
+     * Translated "AI Pane".
      *
-     * @return translated "Ai Pane"
+     * @return translated "AI Pane"
      */
-    @DefaultMessage("Ai Pane")
+    @DefaultMessage("AI Pane")
     @Key("aiPaneTitle")
     String aiPaneTitle();
 
     /**
-     * Translated "Ai Tab".
+     * Translated "AI Tab".
      *
-     * @return translated "Ai Tab"
+     * @return translated "AI Tab"
      */
-    @DefaultMessage("Ai Tab")
+    @DefaultMessage("AI Tab")
     @Key("aiTabLabel")
     String aiTabLabel();
 
     /**
-     * Translated "Ai Tab Second".
+     * Translated "AI Tab Second".
      *
-     * @return translated "Ai Tab Second"
+     * @return translated "AI Tab Second"
      */
-    @DefaultMessage("Ai Tab Second")
+    @DefaultMessage("AI Tab Second")
     @Key("aiTabSecondLabel")
     String aiTabSecondLabel();
 
@@ -89,11 +89,11 @@ public interface AiConstants extends com.google.gwt.i18n.client.Messages {
     String noOccurrencesFoundMessage();
 
     /**
-     * Translated "Search ai".
+     * Translated "Search AI".
      *
-     * @return translated "Search ai"
+     * @return translated "Search AI"
      */
-    @DefaultMessage("Search ai")
+    @DefaultMessage("Search AI")
     @Key("searchAiLabel")
     String searchAiLabel();
 
