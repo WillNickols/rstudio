@@ -14,14 +14,14 @@
  */
 package org.rstudio.studio.client.workbench.views.ai.search;
 
+import java.util.ArrayList;
+
 import com.google.gwt.core.client.JsArrayString;
 import com.google.gwt.user.client.ui.SuggestOracle;
 import com.google.inject.Inject;
 import org.rstudio.studio.client.server.ServerError;
 import org.rstudio.studio.client.server.ServerRequestCallback;
 import org.rstudio.studio.client.workbench.views.ai.model.AiServerOperations;
-
-import java.util.ArrayList;
 
 public class AiSearchOracle extends SuggestOracle
 {
@@ -41,6 +41,8 @@ public class AiSearchOracle extends SuggestOracle
          @Override
          public void onError(ServerError error)
          {
+            // Return empty response on error to avoid null references
+            callback.onSuggestionsReady(request, new Response(new ArrayList<SearchSuggestion>()));
          }
 
          @Override

@@ -121,7 +121,7 @@ options(ai_type = "html")
    )
    
    # Write the empty JSON structure to the file
-   writeLines(jsonlite::toJSON(initialJson, pretty = TRUE), jsonFilePath)
+   writeLines(.rs.jsontostr(initialJson), jsonFilePath)
    
    # Update the HTML display
    .rs.updateConversationDisplay()
@@ -153,7 +153,7 @@ options(ai_type = "html")
    )
    
    # Write the empty JSON structure to the file
-   writeLines(jsonlite::toJSON(initialJson, pretty = TRUE), jsonFilePath)
+   writeLines(.rs.jsontostr(initialJson), jsonFilePath)
    
    # Update the HTML display
    .rs.updateConversationDisplay()
@@ -167,7 +167,7 @@ options(ai_type = "html")
 
 # Helper function to convert JSON to string safely
 .rs.addFunction("jsontostr", function(obj) {
-   jsonlite::toJSON(obj, auto_unbox = TRUE, pretty = TRUE)
+   jsonlite::toJSON(obj, auto_unbox = TRUE, pretty = TRUE, force = TRUE, na = "null", null = "null")
 })
 
 # Function to update the conversation display HTML
@@ -198,7 +198,7 @@ options(ai_type = "html")
       ".user { background-color: #e6e6e6; text-align: right; border-radius: 5px; display: inline-block; float: right; max-width: 100%; word-wrap: break-word; }",
       ".assistant { background-color: transparent; text-align: left; word-wrap: break-word; max-width: 100%; }",
       ".user-container { width: 100%; overflow: hidden; text-align: right; }",
-      ".text { font-family: sans-serif; font-size: 14px; line-height: 1.4; }",
+      ".text { font-family: sans-serif; font-size: 14px; line-height: 1.4; white-space: pre-wrap; }",
       "</style>",
       "<script>",
       "window.onload = function() {",
@@ -216,6 +216,11 @@ options(ai_type = "html")
          
          if (is.null(msgType) || is.na(msgType)) msgType <- "unknown"
          if (is.null(msgText) || is.na(msgText)) msgText <- "(no text)"
+         
+         # Escape HTML special characters to prevent XSS and ensure proper display
+         msgText <- gsub("&", "&amp;", msgText)
+         msgText <- gsub("<", "&lt;", msgText)
+         msgText <- gsub(">", "&gt;", msgText)
          
          msgClass <- if (msgType == "user") "user" else "assistant"
          
@@ -295,10 +300,41 @@ options(ai_type = "html")
       conversation$messages <- rbind(conversation$messages, newMessage)
    }
    
-   # Add the system's echo response
+   # Initialize api_response with a default value
+   api_response <- "Error: API response not received"
+   
+   # Make API call to OpenAI
+   tryCatch({
+      # Get API key from environment variable
+      api_key <- Sys.getenv("OPENAI_API_KEY")
+      if (api_key == "") {
+         stop("OPENAI_API_KEY environment variable is not set")
+      }
+      
+      # Make the API request
+      response <- httr2::request("https://api.openai.com/v1/responses") |>
+         httr2::req_headers(
+            "Content-Type" = "application/json",
+            "Authorization" = paste("Bearer", api_key)
+         ) |>
+         httr2::req_body_json(list(
+            model = "gpt-4",
+            input = query
+         )) |>
+         httr2::req_perform() |>
+         httr2::resp_body_json()
+      
+      # Extract the response text from the API response
+      api_response <- response$output[[1]]$content[[1]]$text
+   }, error = function(e) {
+      # If API call fails, provide a fallback message
+      api_response <<- paste("Error making API call:", e$message)
+   })
+   
+   # Add the API response
    systemResponse <- data.frame(
       type = "assistant",
-      text = query,  # Echo the same text back
+      text = api_response,
       timestamp = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
       stringsAsFactors = FALSE
    )
@@ -307,7 +343,7 @@ options(ai_type = "html")
    conversation$messages <- rbind(conversation$messages, systemResponse)
    
    # Save the updated conversation
-   writeLines(jsonlite::toJSON(conversation, pretty = TRUE), jsonFilePath)
+   writeLines(.rs.jsontostr(conversation), jsonFilePath)
    
    # Update the HTML display
    .rs.updateConversationDisplay()
@@ -470,7 +506,7 @@ options(ai_type = "html")
    }
    
    # Save the updated conversation
-   writeLines(jsonlite::toJSON(conversation, pretty = TRUE), jsonFilePath)
+   writeLines(.rs.jsontostr(conversation), jsonFilePath)
    
    # Update the HTML display
    .rs.updateConversationDisplay()

@@ -83,6 +83,7 @@ import com.google.gwt.dom.client.Element;
 import com.google.gwt.dom.client.EventTarget;
 import com.google.gwt.dom.client.NativeEvent;
 import com.google.gwt.dom.client.NodeList;
+import com.google.gwt.dom.client.Style;
 import com.google.gwt.dom.client.Style.Unit;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
@@ -299,19 +300,18 @@ public class AiPane extends WorkbenchPane
                else if (div.getClassName() != null && 
                        div.getClassName().contains("search")) {
                   div.getStyle().setWidth(100, Unit.PCT);
-                  div.getStyle().setProperty("margin-right", "0");
+                  div.getStyle().setMarginRight(0, Unit.PX);
                   // Remove padding that creates the slots/bars
-                  div.getStyle().setProperty("padding-left", "0");
-                  div.getStyle().setProperty("padding-right", "0");
+                  div.getStyle().setPaddingLeft(0, Unit.PX);
+                  div.getStyle().setPaddingRight(0, Unit.PX);
                }
                else if (div.getClassName() != null && 
                        div.getClassName().contains("searchBoxContainer")) {
                   div.getStyle().setWidth(100, Unit.PCT);
                   // Remove any border or padding that might create slots
-                  div.getStyle().setProperty("border-left", "none");
-                  div.getStyle().setProperty("border-right", "none");
-                  div.getStyle().setProperty("padding-left", "0");
-                  div.getStyle().setProperty("padding-right", "0");
+                  div.getStyle().setBorderStyle(Style.BorderStyle.NONE);
+                  div.getStyle().setPaddingLeft(0, Unit.PX);
+                  div.getStyle().setPaddingRight(0, Unit.PX);
                }
             }
             
@@ -322,7 +322,7 @@ public class AiPane extends WorkbenchPane
                if (span.getClassName() != null && 
                    (span.getClassName().contains("icon") || 
                     span.getClassName().contains("slot"))) {
-                  span.getStyle().setProperty("display", "none");
+                  span.getStyle().setDisplay(Style.Display.NONE);
                }
             }
          }
@@ -407,19 +407,18 @@ public class AiPane extends WorkbenchPane
                   else if (div.getClassName() != null && 
                           div.getClassName().contains("search")) {
                      div.getStyle().setWidth(100, Unit.PCT);
-                     div.getStyle().setProperty("margin-right", "0");
+                     div.getStyle().setMarginRight(0, Unit.PX);
                      // Remove padding that creates the slots/bars
-                     div.getStyle().setProperty("padding-left", "0");
-                     div.getStyle().setProperty("padding-right", "0");
+                     div.getStyle().setPaddingLeft(0, Unit.PX);
+                     div.getStyle().setPaddingRight(0, Unit.PX);
                   }
                   else if (div.getClassName() != null && 
                           div.getClassName().contains("searchBoxContainer")) {
                      div.getStyle().setWidth(100, Unit.PCT);
                      // Remove any border or padding that might create slots
-                     div.getStyle().setProperty("border-left", "none");
-                     div.getStyle().setProperty("border-right", "none");
-                     div.getStyle().setProperty("padding-left", "0");
-                     div.getStyle().setProperty("padding-right", "0");
+                     div.getStyle().setBorderStyle(Style.BorderStyle.NONE);
+                     div.getStyle().setPaddingLeft(0, Unit.PX);
+                     div.getStyle().setPaddingRight(0, Unit.PX);
                   }
                }
                
@@ -430,7 +429,7 @@ public class AiPane extends WorkbenchPane
                   if (span.getClassName() != null && 
                       (span.getClassName().contains("icon") || 
                        span.getClassName().contains("slot"))) {
-                     span.getStyle().setProperty("display", "none");
+                     span.getStyle().setDisplay(Style.Display.NONE);
                   }
                }
             }
@@ -672,7 +671,10 @@ public class AiPane extends WorkbenchPane
                      @Override
                      public void onError(ServerError error)
                      {
-                        // Handle error case
+                        // Handle error case - ensure popup is cancelled
+                        popupCancelled_ = true;
+                        if (popup_ != null)
+                           popup_.hide();
                      }
                   });
 
@@ -1387,7 +1389,7 @@ public class AiPane extends WorkbenchPane
             $wnd.aiSearchHandler = $entry(function(value) {
                // Call the Java method to handle the search
                var thiz = @org.rstudio.studio.client.workbench.views.ai.AiPane::getCurrentInstance()();
-               if (thiz) {
+               if (thiz && value !== null && value !== undefined) {
                   thiz.@org.rstudio.studio.client.workbench.views.ai.AiPane::handleAiSearchFromJS(Ljava/lang/String;)(value);
                }
             });
@@ -1401,7 +1403,7 @@ public class AiPane extends WorkbenchPane
                e.preventDefault();
                
                // Call the global handler to trigger the search
-               if ($wnd.aiSearchHandler) {
+               if ($wnd.aiSearchHandler && textarea && textarea.value !== null && textarea.value !== undefined) {
                   $wnd.aiSearchHandler(textarea.value);
                }
             } 
