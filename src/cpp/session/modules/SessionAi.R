@@ -104,6 +104,7 @@ options(ai_type = "html")
    # Path for our JSON file
    aiDir <- file.path(.libPaths()[1], "ai", "doc", "html")
    jsonFilePath <- file.path(aiDir, "conversation.json")
+   conversationLogPath <- file.path(aiDir, "conversation_log.json")
    
    # Create the directory if it doesn't exist
    if (!dir.exists(aiDir)) {
@@ -122,6 +123,16 @@ options(ai_type = "html")
    
    # Write the empty JSON structure to the file
    writeLines(.rs.jsontostr(initialJson), jsonFilePath)
+   
+   # Create initial conversation log with just the system instructions
+   initialLog <- list(
+      list(
+         role = "developer",
+         content = "Be a data science assistant that writes any necessary scripts in the language R. Be as concise as possible."
+      )
+   )
+   # Write JSON preserving exact structure
+   writeLines(jsonlite::toJSON(initialLog, auto_unbox = TRUE), conversationLogPath)
    
    # Update the HTML display
    .rs.updateConversationDisplay()
@@ -136,6 +147,7 @@ options(ai_type = "html")
    # Path for our JSON file
    aiDir <- file.path(.libPaths()[1], "ai", "doc", "html")
    jsonFilePath <- file.path(aiDir, "conversation.json")
+   conversationLogPath <- file.path(aiDir, "conversation_log.json")
    
    # Create the directory if it doesn't exist
    if (!dir.exists(aiDir)) {
@@ -154,6 +166,16 @@ options(ai_type = "html")
    
    # Write the empty JSON structure to the file
    writeLines(.rs.jsontostr(initialJson), jsonFilePath)
+   
+   # Create initial conversation log with just the system instructions
+   initialLog <- list(
+      list(
+         role = "developer",
+         content = "Be a data science assistant that writes any necessary scripts in the language R. Be as concise as possible."
+      )
+   )
+   # Write JSON preserving exact structure
+   writeLines(jsonlite::toJSON(initialLog, auto_unbox = TRUE), conversationLogPath)
    
    # Update the HTML display
    .rs.updateConversationDisplay()
@@ -259,6 +281,9 @@ options(ai_type = "html")
    # Path for our JSON file
    jsonFilePath <- file.path(aiDir, "conversation.json")
    
+   # Path for conversation log file that will store the full conversation history
+   conversationLogPath <- file.path(aiDir, "conversation_log.json")
+   
    # Create the JSON file if it doesn't exist
    if (!file.exists(jsonFilePath)) {
       # Create initial empty conversation structure
@@ -273,6 +298,19 @@ options(ai_type = "html")
       writeLines(.rs.jsontostr(initialJson), jsonFilePath)
    }
    
+   # Create the conversation log file if it doesn't exist
+   if (!file.exists(conversationLogPath)) {
+      # Create initial conversation log with just the system instructions
+      initialLog <- list(
+         list(
+            role = "developer",
+            content = "Be a data science assistant that writes any necessary scripts in the language R. Be as concise as possible."
+         )
+      )
+      # Write JSON preserving exact structure
+      writeLines(jsonlite::toJSON(initialLog, auto_unbox = TRUE), conversationLogPath)
+   }
+   
    # Read the current conversation
    conversation <- tryCatch({
       jsonlite::fromJSON(jsonFilePath)
@@ -283,6 +321,19 @@ options(ai_type = "html")
          timestamp = character(),
          stringsAsFactors = FALSE
       ))
+   })
+   
+   # Read the conversation log preserving the exact structure
+   conversationLog <- tryCatch({
+      jsonlite::fromJSON(conversationLogPath, simplifyVector = FALSE)
+   }, error = function(e) {
+      # Start with just the system instructions if log can't be read
+      list(
+         list(
+            role = "developer",
+            content = "Be a data science assistant that writes any necessary scripts in the language R. Be as concise as possible."
+         )
+      )
    })
    
    # Add the new user message as a data frame row
@@ -300,6 +351,9 @@ options(ai_type = "html")
       conversation$messages <- rbind(conversation$messages, newMessage)
    }
    
+   # Add the user message to the conversation log
+   conversationLog <- c(conversationLog, list(list(role = "user", content = query)))
+   
    # Initialize api_response with a default value
    api_response <- "Error: API response not received"
    
@@ -311,33 +365,23 @@ options(ai_type = "html")
          stop("OPENAI_API_KEY environment variable is not set")
       }
       
-      # Make the API request
-      instructions <- "Be a data science assistant that writes any necessary scripts in the language R. Be as concise as possible."
-      response <- httr2::request("https://api.openai.com/v1/responses") |>
+      # Use the correct Chat Completions API endpoint
+      response <- httr2::request("https://api.openai.com/v1/chat/completions") |>
           httr2::req_headers(
               "Content-Type" = "application/json",
               "Authorization" = paste("Bearer", api_key)
           ) |>
           httr2::req_body_json(list(
               model = "gpt-4o",
-              input = list(
-                  list(
-                      role = "developer",
-                      content = instructions
-                  ),
-                  list(
-                      role = "user",
-                      content = query
-                  )
-              )
+              messages = conversationLog
           )) |>
           httr2::req_perform() |>
           httr2::resp_body_json()
       
       # Extract the response text from the API response
-      api_response <- response$output[[1]]$content[[1]]$text
+      api_response <- response$choices[[1]]$message$content
    }, error = function(e) {
-      # If API call fails, provide a fallback message
+      # If API call fails, provide a fallback message with more detail
       api_response <<- paste("Error making API call:", e$message)
    })
    
@@ -351,6 +395,12 @@ options(ai_type = "html")
       timestamp = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
       stringsAsFactors = FALSE
    )
+   
+   # Add the assistant response to the conversation log
+   conversationLog <- c(conversationLog, list(list(role = "assistant", content = api_response)))
+   
+   # Save the updated conversation log
+   writeLines(jsonlite::toJSON(conversationLog, auto_unbox = TRUE), conversationLogPath)
    
    # Append the system response
    conversation$messages <- rbind(conversation$messages, systemResponse)
