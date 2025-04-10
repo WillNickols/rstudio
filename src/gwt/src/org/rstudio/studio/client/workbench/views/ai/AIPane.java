@@ -113,6 +113,9 @@ public class AiPane extends WorkbenchPane
    {
       super(constants_.aiText(), events);
 
+      // Set the current instance for JSNI callbacks
+      currentInstance_ = this;
+      
       searchProvider_ = searchProvider;
       globalDisplay_ = globalDisplay;
       commands_ = commands;
@@ -189,7 +192,135 @@ public class AiPane extends WorkbenchPane
    @Override
    protected Widget createMainWidget()
    {
-      return new AutoGlassPanel(frame_);
+      // Use a DockLayoutPanel instead of VerticalPanel for better layout control
+      com.google.gwt.user.client.ui.DockLayoutPanel mainPanel = new com.google.gwt.user.client.ui.DockLayoutPanel(Unit.PX);
+      mainPanel.setSize("100%", "100%");
+      
+      // Create bottom panel for search widget
+      searchWidget_ = searchProvider_.get().getSearchWidget();
+      Widget searchWidgetWidget = (Widget)searchWidget_;
+      
+      // Wrap the search widget in a container with a minimum height
+      com.google.gwt.user.client.ui.SimplePanel searchContainer = new com.google.gwt.user.client.ui.SimplePanel();
+      searchContainer.setWidget(searchWidgetWidget);
+      searchContainer.setStyleName("rstudio-AiSearchContainer");
+      searchContainer.getElement().getStyle().setProperty("minHeight", "46px"); // 30px input + 8px padding top/bottom
+      searchContainer.getElement().getStyle().setProperty("height", "auto");
+      searchContainer.getElement().getStyle().setProperty("display", "block");
+      
+      // Add the search container to the bottom with flexible height
+      mainPanel.addSouth(searchContainer, 46);
+      
+      // Create a resize handler to adjust the layout when the search widget resizes
+      searchWidgetWidget.addHandler(new ResizeHandler() {
+         @Override
+         public void onResize(ResizeEvent event) {
+            // Update container height to match content
+            int contentHeight = searchWidgetWidget.getOffsetHeight();
+            if (contentHeight > 0) {
+               int newHeight = Math.max(46, contentHeight);
+               searchContainer.getElement().getStyle().setProperty("height", "auto");
+               mainPanel.forceLayout();
+            }
+         }
+      }, ResizeEvent.getType());
+      
+      // Style the search widget for bottom placement
+      searchWidgetWidget.addStyleName(RES.styles().bottomSearchWidget());
+      
+      // Set placeholder text for the search input
+      NodeList<Element> inputs = searchWidgetWidget.getElement().getElementsByTagName("input");
+      for (int i = 0; i < inputs.getLength(); i++) {
+         Element input = inputs.getItem(i);
+         input.setAttribute("placeholder", constants_.searchAiLabel());
+         
+         // Configure input for multiline support
+         configureInputForMultiline(input);
+      }
+      
+      // Force search widget elements to take full width
+      Element searchElement = searchWidgetWidget.getElement().getFirstChildElement();
+      if (searchElement != null) {
+         searchElement.getStyle().setWidth(100, Unit.PCT);
+         
+         // Find all direct children of the search element and set them to 100% width
+         NodeList<Element> children = searchElement.getChildNodes().cast();
+         for (int i = 0; i < children.getLength(); i++) {
+            if (Element.is(children.getItem(i))) {
+               Element child = Element.as(children.getItem(i));
+               child.getStyle().setWidth(100, Unit.PCT);
+            }
+         }
+      }
+      
+      // Main frame takes up the rest of the space
+      AutoGlassPanel glassPanel = new AutoGlassPanel(frame_);
+      mainPanel.add(glassPanel);
+      
+      // Schedule a deferred task to ensure proper rendering of the search widget
+      Scheduler.get().scheduleDeferred(new ScheduledCommand() {
+         @Override
+         public void execute() {
+            // Get all input elements and make them full width
+            NodeList<Element> inputs = searchWidgetWidget.getElement().getElementsByTagName("input");
+            for (int i = 0; i < inputs.getLength(); i++) {
+               Element input = inputs.getItem(i);
+               input.getStyle().setWidth(100, Unit.PCT);
+               input.getStyle().setProperty("boxSizing", "border-box");
+               input.setAttribute("placeholder", constants_.searchAiLabel());
+               
+               // Configure input for multiline support
+               configureInputForMultiline(input);
+            }
+            
+            // Set full width for all table elements
+            NodeList<Element> tables = searchWidgetWidget.getElement().getElementsByTagName("table");
+            for (int i = 0; i < tables.getLength(); i++) {
+               Element table = tables.getItem(i);
+               table.getStyle().setWidth(100, Unit.PCT);
+            }
+            
+            // Find and style the suggest box elements
+            NodeList<Element> divs = searchWidgetWidget.getElement().getElementsByTagName("div");
+            for (int i = 0; i < divs.getLength(); i++) {
+               Element div = divs.getItem(i);
+               if (div.getClassName() != null && 
+                   div.getClassName().contains("gwt-SuggestBox")) {
+                  div.getStyle().setWidth(100, Unit.PCT);
+               }
+               else if (div.getClassName() != null && 
+                       div.getClassName().contains("search")) {
+                  div.getStyle().setWidth(100, Unit.PCT);
+                  div.getStyle().setProperty("margin-right", "0");
+                  // Remove padding that creates the slots/bars
+                  div.getStyle().setProperty("padding-left", "0");
+                  div.getStyle().setProperty("padding-right", "0");
+               }
+               else if (div.getClassName() != null && 
+                       div.getClassName().contains("searchBoxContainer")) {
+                  div.getStyle().setWidth(100, Unit.PCT);
+                  // Remove any border or padding that might create slots
+                  div.getStyle().setProperty("border-left", "none");
+                  div.getStyle().setProperty("border-right", "none");
+                  div.getStyle().setProperty("padding-left", "0");
+                  div.getStyle().setProperty("padding-right", "0");
+               }
+            }
+            
+            // Remove any icon containers or slots
+            NodeList<Element> spans = searchWidgetWidget.getElement().getElementsByTagName("span");
+            for (int i = 0; i < spans.getLength(); i++) {
+               Element span = spans.getItem(i);
+               if (span.getClassName() != null && 
+                   (span.getClassName().contains("icon") || 
+                    span.getClassName().contains("slot"))) {
+                  span.getStyle().setProperty("display", "none");
+               }
+            }
+         }
+      });
+      
+      return mainPanel;
    }
 
    @Override
@@ -229,6 +360,74 @@ public class AiPane extends WorkbenchPane
    public void onResize()
    {
       manageTitleLabelMaxSize();
+      
+      // Ensure search widget takes up full width when resized
+      if (searchWidget_ != null)
+      {
+         final Widget searchWidgetWidget = (Widget)searchWidget_;
+         
+         // Style all elements inside search widget to take full width
+         Scheduler.get().scheduleDeferred(new ScheduledCommand() {
+            @Override
+            public void execute() {
+               // Get all input elements and ensure they're full width
+               NodeList<Element> inputs = searchWidgetWidget.getElement().getElementsByTagName("input");
+               for (int i = 0; i < inputs.getLength(); i++) {
+                  Element input = inputs.getItem(i);
+                  input.getStyle().setWidth(100, Unit.PCT);
+                  input.setAttribute("placeholder", constants_.searchAiLabel());
+                  
+                  // Configure input for multiline support
+                  configureInputForMultiline(input);
+               }
+               
+               // Set full width for all table elements
+               NodeList<Element> tables = searchWidgetWidget.getElement().getElementsByTagName("table");
+               for (int i = 0; i < tables.getLength(); i++) {
+                  Element table = tables.getItem(i);
+                  table.getStyle().setWidth(100, Unit.PCT);
+               }
+               
+               // Find and style the suggest box elements
+               NodeList<Element> divs = searchWidgetWidget.getElement().getElementsByTagName("div");
+               for (int i = 0; i < divs.getLength(); i++) {
+                  Element div = divs.getItem(i);
+                  if (div.getClassName() != null && 
+                      div.getClassName().contains("gwt-SuggestBox")) {
+                     div.getStyle().setWidth(100, Unit.PCT);
+                  }
+                  else if (div.getClassName() != null && 
+                          div.getClassName().contains("search")) {
+                     div.getStyle().setWidth(100, Unit.PCT);
+                     div.getStyle().setProperty("margin-right", "0");
+                     // Remove padding that creates the slots/bars
+                     div.getStyle().setProperty("padding-left", "0");
+                     div.getStyle().setProperty("padding-right", "0");
+                  }
+                  else if (div.getClassName() != null && 
+                          div.getClassName().contains("searchBoxContainer")) {
+                     div.getStyle().setWidth(100, Unit.PCT);
+                     // Remove any border or padding that might create slots
+                     div.getStyle().setProperty("border-left", "none");
+                     div.getStyle().setProperty("border-right", "none");
+                     div.getStyle().setProperty("padding-left", "0");
+                     div.getStyle().setProperty("padding-right", "0");
+                  }
+               }
+               
+               // Remove any icon containers or slots
+               NodeList<Element> spans = searchWidgetWidget.getElement().getElementsByTagName("span");
+               for (int i = 0; i < spans.getLength(); i++) {
+                  Element span = spans.getItem(i);
+                  if (span.getClassName() != null && 
+                      (span.getClassName().contains("icon") || 
+                       span.getClassName().contains("slot"))) {
+                     span.getStyle().setProperty("display", "none");
+                  }
+               }
+            }
+         });
+      }
 
       super.onResize();
    }
@@ -581,8 +780,9 @@ public class AiPane extends WorkbenchPane
       }
       toolbar.addLeftWidget(commands_.aiPopout().createToolbarButton());
 
-      searchWidget_ = searchProvider_.get().getSearchWidget();
-      toolbar.addRightWidget((Widget)searchWidget_);
+      // Remove search widget from toolbar since it's now at the bottom
+      // searchWidget_ = searchProvider_.get().getSearchWidget();
+      // toolbar.addRightWidget((Widget)searchWidget_);
 
       toolbar.addRightSeparator();
 
@@ -1010,11 +1210,194 @@ public class AiPane extends WorkbenchPane
       scrollTimer_.schedule(50);
    }
 
+   /**
+    * Configures an input element to support multiline text with auto-expanding height
+    * by replacing it with a textarea that has similar attributes
+    */
+   private native void configureInputForMultiline(Element input) /*-{
+      // Only convert to textarea if not already converted
+      if (!input.getAttribute("converted-to-textarea")) {
+         input.setAttribute("converted-to-textarea", "true");
+         
+         // Create a textarea to replace the input
+         var textarea = $doc.createElement("textarea");
+         
+         // Copy relevant attributes from input to textarea
+         textarea.className = input.className;
+         textarea.placeholder = input.placeholder;
+         textarea.value = input.value;
+         textarea.id = input.id;
+         textarea.name = input.name;
+         
+         // Apply specific styles for textarea behavior
+         textarea.style.width = "100%";
+         textarea.style.height = "auto";
+         textarea.style.minHeight = "30px";
+         textarea.style.boxSizing = "border-box";
+         textarea.style.resize = "none";
+         textarea.style.overflow = "hidden";
+         textarea.style.border = "none";
+         textarea.style.outline = "none";
+         textarea.style.padding = "4px 10px";
+         textarea.style.display = "block";
+         
+         // Make sure font matches exactly the input element and rest of the application
+         var computedStyle = window.getComputedStyle(input);
+         
+         // If the input doesn't have explicit font settings, try to get them from parent elements
+         var fontFamily = computedStyle.fontFamily;
+         var fontSize = computedStyle.fontSize;
+         var fontWeight = computedStyle.fontWeight;
+         
+         if (fontFamily === "" || fontFamily === "inherit") {
+            // Try to get font from parent
+            var parent = input.parentElement;
+            while (parent) {
+               var parentStyle = window.getComputedStyle(parent);
+               if (parentStyle.fontFamily && parentStyle.fontFamily !== "" && parentStyle.fontFamily !== "inherit") {
+                  fontFamily = parentStyle.fontFamily;
+                  break;
+               }
+               parent = parent.parentElement;
+            }
+         }
+         
+         // Apply all font properties
+         textarea.style.fontFamily = fontFamily;
+         textarea.style.fontSize = fontSize;
+         textarea.style.fontWeight = fontWeight;
+         textarea.style.fontStyle = computedStyle.fontStyle;
+         textarea.style.letterSpacing = computedStyle.letterSpacing;
+         textarea.style.lineHeight = computedStyle.lineHeight || "1.4";
+         textarea.style.color = computedStyle.color;
+         textarea.style.backgroundColor = "transparent";
+         
+         // Replace the input with the textarea
+         input.parentNode.replaceChild(textarea, input);
+         
+         // Focus the textarea if the input was focused
+         if (document.activeElement === input) {
+            textarea.focus();
+         }
+         
+         // Auto-resize function
+         var resizeTextarea = function() {
+            textarea.style.height = "auto"; // Reset height to recalculate
+            var newHeight = Math.max(30, textarea.scrollHeight);
+            textarea.style.height = newHeight + "px";
+            
+            // Adjust parent containers
+            var parent = textarea.parentElement;
+            while (parent && parent.classList) {
+               if (parent.classList.contains("search") || 
+                   parent.classList.contains("rstheme_center") || 
+                   parent.classList.contains("searchBoxContainer") || 
+                   parent.classList.contains("searchBoxContainer2")) {
+                  parent.style.height = "auto";
+                  parent.style.minHeight = "30px";
+               }
+               parent = parent.parentElement;
+            }
+            
+            // Trigger a resize event
+            if (typeof $wnd.CustomEvent === 'function') {
+               var event = new $wnd.CustomEvent('resize', {bubbles: true});
+               textarea.dispatchEvent(event);
+            }
+         };
+         
+         // Add event listeners for automatic resizing
+         textarea.addEventListener("input", resizeTextarea);
+         textarea.addEventListener("change", resizeTextarea);
+         textarea.addEventListener("focus", resizeTextarea);
+         
+         // Set up the global handler for AI search if not already defined
+         if (!$wnd.aiSearchHandler) {
+            $wnd.aiSearchHandler = $entry(function(value) {
+               // Call the Java method to handle the search
+               var thiz = @org.rstudio.studio.client.workbench.views.ai.AiPane::getCurrentInstance()();
+               if (thiz) {
+                  thiz.@org.rstudio.studio.client.workbench.views.ai.AiPane::handleAiSearchFromJS(Ljava/lang/String;)(value);
+               }
+            });
+         }
+         
+         // Handle key events - modified to make Enter trigger search
+         textarea.addEventListener("keydown", function(e) {
+            // If Enter key without any modifier keys
+            if (e.keyCode === 13 && !e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey) {
+               // Prevent default (which would add a newline)
+               e.preventDefault();
+               
+               // Call the global handler to trigger the search
+               if ($wnd.aiSearchHandler) {
+                  $wnd.aiSearchHandler(textarea.value);
+               }
+            } 
+            else if (e.keyCode === 13 && (e.ctrlKey || e.metaKey)) {
+               // Allow Ctrl+Enter or Cmd+Enter (macOS) to insert a newline
+               // No need to do anything special, let the default behavior happen
+            }
+         });
+         
+         // Initial resize
+         setTimeout(resizeTextarea, 0);
+         
+         // Handle window resize
+         $wnd.addEventListener("resize", function() {
+            setTimeout(resizeTextarea, 0);
+         });
+         
+         // Return the new textarea to allow further operations if needed
+         return textarea;
+      }
+      
+      return input; // Return original input if already converted
+   }-*/;
+
+   // Static reference to current instance for JSNI callbacks
+   private static AiPane currentInstance_;
+   
+   // Static getter for the current instance
+   private static AiPane getCurrentInstance() {
+      return currentInstance_;
+   }
+   
+   // Called from JSNI when Enter is pressed in the search textarea
+   private void handleAiSearchFromJS(final String searchValue) {
+      if (searchValue == null || searchValue.trim().isEmpty()) 
+         return;
+      
+      // Replace all newline characters with spaces
+      final String modifiedSearchValue = searchValue.replace("\n", " ");
+      
+      Scheduler.get().scheduleDeferred(() -> {
+         if (searchWidget_ != null) {
+               // Fire selection commit event on the search widget using modified search string
+               org.rstudio.core.client.events.SelectionCommitEvent.fire(searchWidget_, modifiedSearchValue);
+               
+               // Clear the text box after triggering the search
+               Scheduler.get().scheduleDeferred(() -> {
+                  // Clear the search widget's text
+                  searchWidget_.setText("");
+                  
+                  // Also directly clear any textareas that might be in the search widget
+                  NodeList<Element> textareas = ((Widget)searchWidget_).getElement().getElementsByTagName("textarea");
+                  for (int i = 0; i < textareas.getLength(); i++) {
+                     Element textarea = textareas.getItem(i);
+                     textarea.setPropertyString("value", "");
+                  }
+               });
+         }
+      });
+   }
+
    public interface Styles extends CssResource
    {
       String findTopicTextbox();
       String topicNavigationButton();
       String topicTitle();
+      String bottomSearchWidget();
    }
 
    public interface EditorStyles extends CssResource

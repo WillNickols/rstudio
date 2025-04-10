@@ -176,8 +176,6 @@ public class SearchWidget extends Composite implements SearchDisplay
       
       suggestBox_ = new FocusSuggestBox(oracle, textBox, suggestDisplay);
       initWidget(uiBinder.createAndBindUi(this));
-      clearFilter_.setVisible(false);
-      clearFilter_.setDescription(constants_.searchWidgetClearText());
       if (!StringUtil.isNullOrEmpty(label))
       {
          hiddenLabel_.setInnerText(label);
@@ -262,12 +260,6 @@ public class SearchWidget extends Composite implements SearchDisplay
                delegateEvent(SearchWidget.this, evt);
             }
          }
-      });
-
-      clearFilter_.addClickHandler(event -> {
-         suggestBox_.setText("");
-         ValueChangeEvent.fire(suggestBox_, "");
-         focus();
       });
 
       focusTracker_ = new FocusTracker(suggestBox_);
@@ -356,7 +348,8 @@ public class SearchWidget extends Composite implements SearchDisplay
 
    public void setIcon(ImageResource image)
    {
-      icon_.setResource(image);
+      // icon_ is removed from the UI
+      // icon_.setResource(image);
    }
 
    public void focus()
@@ -367,7 +360,6 @@ public class SearchWidget extends Composite implements SearchDisplay
    public void clear()
    {
       setText("", true);
-      clearFilter_.setVisible(false);
    }
 
    // NOTE: only works if you are using the default display!
@@ -384,7 +376,7 @@ public class SearchWidget extends Composite implements SearchDisplay
    private void updateLastValue(String value)
    {
       lastValueSent_ = value;
-      clearFilter_.setVisible(lastValueSent_.length() > 0);
+      // clearFilter_.setVisible(lastValueSent_.length() > 0);
    }
 
    public String getLastValue()
@@ -412,10 +404,14 @@ public class SearchWidget extends Composite implements SearchDisplay
 
    @UiField(provided=true)
    FocusSuggestBox suggestBox_;
-   @UiField
-   ImageButton clearFilter_;
-   @UiField
-   DecorativeImage icon_;
+   
+   // These fields are removed from the UI but kept as null fields for compatibility
+   // @UiField
+   ImageButton clearFilter_ = null;
+   
+   // @UiField
+   DecorativeImage icon_ = null;
+
    @UiField
    LabelElement hiddenLabel_;
 

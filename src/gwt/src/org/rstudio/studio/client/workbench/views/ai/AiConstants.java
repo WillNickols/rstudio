@@ -89,11 +89,11 @@ public interface AiConstants extends com.google.gwt.i18n.client.Messages {
     String noOccurrencesFoundMessage();
 
     /**
-     * Translated "Search AI".
+     * Translated "Ask anything".
      *
-     * @return translated "Search AI"
+     * @return translated "Ask anything"
      */
-    @DefaultMessage("Search AI")
+    @DefaultMessage("Ask anything")
     @Key("searchAiLabel")
     String searchAiLabel();
 
