@@ -705,9 +705,38 @@ options(ai_type = "html")
          writeLines(codeBlock, fileName)
          
          # Use the RStudio API to display the file in the editor pane
-         .rs.api.documentOpen(fileName)
+         # If we're overwriting an existing file, close and reopen it to refresh the content
+         if (shouldOverwrite && !is.null(mostRecentScript)) {
+            # Get the document ID if it's currently open
+            currentDocId <- tryCatch({
+               # Try to get the ID of the document if it's open
+               docs <- .Call("rs_listDocuments", PACKAGE = "(embedding)")
+               docPaths <- sapply(docs, function(doc) doc$path)
+               docIndex <- which(docPaths == fileName)
+               
+               if (length(docIndex) > 0) {
+                  # File is open, get its ID
+                  docs[[docIndex]]$id
+               } else {
+                  NULL
+               }
+            }, error = function(e) {
+               NULL
+            })
+            
+            # If the document is open, close and reopen it to refresh
+            if (!is.null(currentDocId)) {
+               .rs.api.documentClose(currentDocId, save = FALSE)
+            }
+            
+            # Reopen the file to show the updated content
+            .rs.api.documentOpen(fileName)
+         } else {
+            # For new files, just open normally
+            .rs.api.documentOpen(fileName)
+         }
          
-         cleaned_response = sub(codeBlock, '', response, fixed = T)
+         cleaned_response = gsub("\\s*```[Rr].*```\\s*", "\n", response)
       }
    }
    
