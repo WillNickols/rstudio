@@ -312,17 +312,27 @@ options(ai_type = "html")
       }
       
       # Make the API request
+      instructions <- "Be a data science assistant that writes any necessary scripts in the language R. Be as concise as possible."
       response <- httr2::request("https://api.openai.com/v1/responses") |>
-         httr2::req_headers(
-            "Content-Type" = "application/json",
-            "Authorization" = paste("Bearer", api_key)
-         ) |>
-         httr2::req_body_json(list(
-            model = "gpt-4",
-            input = query
-         )) |>
-         httr2::req_perform() |>
-         httr2::resp_body_json()
+          httr2::req_headers(
+              "Content-Type" = "application/json",
+              "Authorization" = paste("Bearer", api_key)
+          ) |>
+          httr2::req_body_json(list(
+              model = "gpt-4o",
+              input = list(
+                  list(
+                      role = "developer",
+                      content = instructions
+                  ),
+                  list(
+                      role = "user",
+                      content = query
+                  )
+              )
+          )) |>
+          httr2::req_perform() |>
+          httr2::resp_body_json()
       
       # Extract the response text from the API response
       api_response <- response$output[[1]]$content[[1]]$text
@@ -331,10 +341,13 @@ options(ai_type = "html")
       api_response <<- paste("Error making API call:", e$message)
    })
    
-   # Add the API response
+   # Extract R code blocks from the response and show them in viewer
+   cleaned_response <- .rs.extractRCodeFromResponse(api_response)
+   
+   # Add the API response (with code blocks removed from display)
    systemResponse <- data.frame(
       type = "assistant",
-      text = api_response,
+      text = cleaned_response,
       timestamp = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
       stringsAsFactors = FALSE
    )
@@ -478,6 +491,9 @@ options(ai_type = "html")
    aiDir <- file.path(.libPaths()[1], "ai", "doc", "html")
    jsonFilePath <- file.path(aiDir, "conversation.json")
    
+   # Extract R code blocks from the response and show them in viewer
+   cleaned_response <- .rs.extractRCodeFromResponse(response)
+   
    # Read the current conversation
    conversation <- tryCatch({
       jsonlite::fromJSON(jsonFilePath)
@@ -493,7 +509,7 @@ options(ai_type = "html")
    # Add the new AI response message as a data frame row
    newMessage <- data.frame(
       type = "assistant",
-      text = response,
+      text = cleaned_response,
       timestamp = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
       stringsAsFactors = FALSE
    )
@@ -513,4 +529,65 @@ options(ai_type = "html")
    
    # Return success
    return(TRUE)
+})
+
+# Function to extract R code blocks from API responses and display them in the script viewer
+.rs.addFunction("extractRCodeFromResponse", function(response) {
+   # Initialize the cleaned response with the original
+   cleaned_response <- response
+   
+   # Check if response contains R code blocks
+   if (grepl("```R", response, fixed = TRUE) || grepl("```r", response, fixed = TRUE)) {
+      # Extract code between ```R and ``` markers
+      pattern <- "```[Rr]\\s*\\n([\\s\\S]*?)\\n\\s*```"
+      matches <- gregexpr(pattern, response, perl = TRUE)
+      
+      if (matches[[1]][1] != -1) {
+         # Create a file with a snake_case name
+         rOutputDir <- file.path(.libPaths()[1], "ai", "output")
+         dir.create(rOutputDir, recursive = TRUE, showWarnings = FALSE)
+         
+         # Generate a timestamped filename
+         timestamp <- format(Sys.time(), "%Y%m%d_%H%M%S")
+         fileName <- file.path(rOutputDir, paste0("ai_response_", timestamp, ".R"))
+         
+         # Extract all code blocks and combine them
+         allCode <- character(0)
+         
+         # Also build a list of spans to remove from the displayed response
+         spans_to_remove <- list()
+         
+         for (i in seq_along(matches[[1]])) {
+            start <- matches[[1]][i]
+            length <- attr(matches[[1]], "match.length")[i]
+            end <- start + length - 1
+            
+            # Store the span to remove later
+            spans_to_remove[[i]] <- list(start = start, end = end)
+            
+            codeBlockWithMarkers <- substr(response, start, end)
+            
+            # Extract just the code without the markers
+            codeBlock <- gsub("```[Rr]\\s*\\n|\\n\\s*```", "", codeBlockWithMarkers, perl = TRUE)
+            allCode <- c(allCode, codeBlock)
+         }
+         
+         # Write the code to the file
+         writeLines(paste(allCode, collapse = "\n\n"), fileName)
+         
+         # Use the RStudio API to display the file in the editor pane
+         .rs.api.documentOpen(fileName)
+         
+         # Remove the code blocks from the response for display
+         # Process spans in reverse order to maintain correct indices
+         for (i in rev(seq_along(spans_to_remove))) {
+            span <- spans_to_remove[[i]]
+            before <- if (span$start > 1) substr(cleaned_response, 1, span$start - 1) else ""
+            after <- if (span$end < nchar(cleaned_response)) substr(cleaned_response, span$end + 1, nchar(cleaned_response)) else ""
+            cleaned_response <- paste0(before, after)
+         }
+      }
+   }
+   
+   return(cleaned_response)
 })
