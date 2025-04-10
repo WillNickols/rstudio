@@ -199,8 +199,13 @@ options(ai_type = "html")
       ".assistant { background-color: transparent; text-align: left; word-wrap: break-word; max-width: 100%; }",
       ".user-container { width: 100%; overflow: hidden; text-align: right; }",
       ".text { font-family: sans-serif; font-size: 14px; line-height: 1.4; }",
-      "</style></head><body>",
-      "<h2>Conversation</h2>"
+      "</style>",
+      "<script>",
+      "window.onload = function() {",
+      "  window.scrollTo(0, document.body.scrollHeight);",
+      "};",
+      "</script>",
+      "</head><body>"
    )
    
    # Handle the messages data frame - check that it's a data frame and has rows

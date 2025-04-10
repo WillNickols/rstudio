@@ -201,6 +201,10 @@ public class WindowEx extends JavaScriptObject
       this.postMessage(data, origin);
    }-*/;
 
+   public final native void scrollToBottom() /*-{
+      this.scrollTo(0, this.document.body.scrollHeight);
+   }-*/;
+
    public static HandlerRegistration addFocusHandler(FocusHandler handler)
    {
       return handlers_.addHandler(FocusEvent.getType(), handler);

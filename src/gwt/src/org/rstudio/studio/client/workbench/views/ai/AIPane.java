@@ -1075,7 +1075,17 @@ public class AiPane extends WorkbenchPane
             public void onLoad(LoadEvent event)
             {
                WindowEx contentWindow = getIFrameEx().getContentWindow();
-               contentWindow.setScrollPosition(scrollPos);
+               
+               // For conversation display, we need to ensure it scrolls to bottom on initial load
+               final boolean isConversationDisplay = url.contains("conversation_display.html");
+               
+               if (isConversationDisplay) {
+                  // Scroll to bottom only once on initial load
+                  contentWindow.scrollToBottom();
+               } else {
+                  contentWindow.setScrollPosition(scrollPos);
+               }
+               
                setWindowScrollHandler(contentWindow);
 
                handler_.removeHandler();
@@ -1236,6 +1246,15 @@ public class AiPane extends WorkbenchPane
 
    private void onScroll()
    {
+      // Don't save scroll position for conversation display to prevent interfering with scroll-to-bottom behavior
+      String url = getUrl();
+      if (url != null && url.contains("conversation_display.html")) {
+         // Remove continuous scroll-to-bottom behavior
+         // Let user control scrolling except when they submit a new prompt
+         return;
+      }
+      
+      // Normal scroll position saving for other content
       scrollTimer_.schedule(50);
    }
 
@@ -1438,6 +1457,21 @@ public class AiPane extends WorkbenchPane
                   for (int i = 0; i < textareas.getLength(); i++) {
                      Element textarea = textareas.getItem(i);
                      textarea.setPropertyString("value", "");
+                  }
+                  
+                  // Scroll to bottom when a new prompt is submitted
+                  String url = getUrl();
+                  if (url != null && url.contains("conversation_display.html")) {
+                     WindowEx contentWindow = getContentWindow();
+                     if (contentWindow != null) {
+                        // Schedule with a slight delay to ensure the new content is rendered
+                        new Timer() {
+                           @Override
+                           public void run() {
+                              contentWindow.scrollToBottom();
+                           }
+                        }.schedule(300);
+                     }
                   }
                });
          }
