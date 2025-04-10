@@ -384,6 +384,12 @@ options(ai_type = "html")
       # If API call fails, provide a fallback message with more detail
       api_response <<- paste("Error making API call:", e$message)
    })
+
+   # Add the assistant response to the conversation log
+   conversationLog <- c(conversationLog, list(list(role = "assistant", content = api_response)))
+   
+   # Save the updated conversation log
+   writeLines(jsonlite::toJSON(conversationLog, auto_unbox = TRUE), conversationLogPath)
    
    # Extract R code blocks from the response and show them in viewer
    cleaned_response <- .rs.extractRCodeFromResponse(api_response)
@@ -395,12 +401,6 @@ options(ai_type = "html")
       timestamp = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
       stringsAsFactors = FALSE
    )
-   
-   # Add the assistant response to the conversation log
-   conversationLog <- c(conversationLog, list(list(role = "assistant", content = api_response)))
-   
-   # Save the updated conversation log
-   writeLines(jsonlite::toJSON(conversationLog, auto_unbox = TRUE), conversationLogPath)
    
    # Append the system response
    conversation$messages <- rbind(conversation$messages, systemResponse)
@@ -586,56 +586,128 @@ options(ai_type = "html")
    # Initialize the cleaned response with the original
    cleaned_response <- response
    
+   if (is.null(response)) {
+       return(response)
+   }
+   
    # Check if response contains R code blocks
    if (grepl("```R", response, fixed = TRUE) || grepl("```r", response, fixed = TRUE)) {
       # Extract code between ```R and ``` markers
-      pattern <- "```[Rr]\\s*\\n([\\s\\S]*?)\\n\\s*```"
-      matches <- gregexpr(pattern, response, perl = TRUE)
+       pattern <- "```[Rr]\\s*\\n([\\s\\S]*?)```"
+       matches <- regmatches(response, gregexpr(pattern, response, perl = TRUE))
+       
+       if (length(matches) > 1) {
+           stop(paste0("AI returned more than 1 code block: ", response))
+       }
       
-      if (matches[[1]][1] != -1) {
+      if (matches[[1]][1] != "") {
          # Create a file with a snake_case name
          rOutputDir <- file.path(.libPaths()[1], "ai", "output")
          dir.create(rOutputDir, recursive = TRUE, showWarnings = FALSE)
          
-         # Generate a timestamped filename
-         timestamp <- format(Sys.time(), "%Y%m%d_%H%M%S")
-         fileName <- file.path(rOutputDir, paste0("ai_response_", timestamp, ".R"))
-         
-         # Extract all code blocks and combine them
-         allCode <- character(0)
-         
-         # Also build a list of spans to remove from the displayed response
-         spans_to_remove <- list()
-         
-         for (i in seq_along(matches[[1]])) {
-            start <- matches[[1]][i]
-            length <- attr(matches[[1]], "match.length")[i]
-            end <- start + length - 1
+         # Check if a previous R script exists
+         mostRecentScript <- NULL
+         previousScripts <- list.files(rOutputDir, pattern = "^ai_response_.*\\.R$", full.names = TRUE)
+         if (length(previousScripts) > 0) {
+            # Sort by modification time to find the most recent
+            fileInfo <- file.info(previousScripts)
+            mostRecentScript <- rownames(fileInfo)[which.max(fileInfo$mtime)]
             
-            # Store the span to remove later
-            spans_to_remove[[i]] <- list(start = start, end = end)
-            
-            codeBlockWithMarkers <- substr(response, start, end)
-            
-            # Extract just the code without the markers
-            codeBlock <- gsub("```[Rr]\\s*\\n|\\n\\s*```", "", codeBlockWithMarkers, perl = TRUE)
-            allCode <- c(allCode, codeBlock)
+            # Send API call to ask about overwriting
+            api_key <- Sys.getenv("OPENAI_API_KEY")
+            if (api_key != "") {
+               # Get the conversation log to provide context but don't modify it
+               conversationLogPath <- file.path(.libPaths()[1], "ai", "doc", "html", "conversation_log.json")
+               conversationLog <- jsonlite::fromJSON(conversationLogPath, simplifyVector = FALSE)
+               
+               # Create a copy of the conversation log for the API call
+               overwriteQuestion <- c(
+                  conversationLog,
+                  list(list(
+                     role = "user",
+                     content = "Should this be a new script or overwrite the previous script? Only answer with the single word 'New' or 'Overwrite'."
+                  ))
+               )
+               
+               # Try up to 3 times to get a clear "New" or "Overwrite" response
+               maxRetries <- 3
+               retryCount <- 0
+               overwriteResponse <- NULL
+               validResponse <- FALSE
+
+               while (!validResponse && retryCount < maxRetries) {
+                  overwriteResponse <- tryCatch({
+                      overwriteResponse <- httr2::request("https://api.openai.com/v1/chat/completions") |>
+                        httr2::req_headers(
+                           "Content-Type" = "application/json",
+                           "Authorization" = paste("Bearer", api_key)
+                        ) |>
+                        httr2::req_body_json(list(
+                           model = "gpt-4o",
+                           messages = overwriteQuestion
+                        )) |>
+                        httr2::req_perform() |>
+                        httr2::resp_body_json()
+                  
+                     # Extract the response text
+                      overwriteResponse$choices[[1]]$message$content
+                  }, error = function(e) {
+                     stop("Couldn't decide whether to overwrite the previous script.")
+                  })
+                  
+                  # Trim whitespace and check if response starts with "New" or "Overwrite"
+                  trimmedResponse <- trimws(overwriteResponse)
+                  if (grepl("^[Nn]ew", trimmedResponse) || grepl("^[Oo]verwrite", trimmedResponse)) {
+                     validResponse <- TRUE
+                  } else {
+                     # Create a new question with clearer instructions
+                     overwriteQuestion <- c(
+                        conversationLog,
+                        list(list(
+                           role = "user",
+                           content = paste0("Should this be a new script or overwrite the previous script? Your previous answer was unclear. ",
+                                           "Please respond with ONLY the single word 'New' or 'Overwrite' and nothing else.")
+                        ))
+                     )
+                     retryCount <- retryCount + 1
+                  }
+               }
+
+               if (!validResponse) {
+                  stop("Failed to get a clear 'New' or 'Overwrite' response after multiple attempts.")
+               }
+
+               # Decide based on the response
+               shouldOverwrite <- grepl("^[Oo]verwrite", trimmedResponse, perl = TRUE)
+            } else {
+               stop("No API key found.")
+            }
+         } else {
+            # No previous script, always create new
+            shouldOverwrite <- FALSE
          }
          
+         # Generate a filename
+         if (shouldOverwrite && !is.null(mostRecentScript)) {
+            fileName <- mostRecentScript
+         } else {
+            # Generate a timestamped filename for a new file
+            timestamp <- format(Sys.time(), "%Y%m%d_%H%M%S")
+            fileName <- file.path(rOutputDir, paste0("ai_response_", timestamp, ".R"))
+         }
+         
+        codeBlockWithMarkers <- matches[[1]][1]
+        
+        # Extract just the code without the markers
+        codeBlock <- gsub("```[Rr]\\s*\\n|```", "", codeBlockWithMarkers, perl = TRUE)
+
          # Write the code to the file
-         writeLines(paste(allCode, collapse = "\n\n"), fileName)
+         writeLines(codeBlock, fileName)
          
          # Use the RStudio API to display the file in the editor pane
          .rs.api.documentOpen(fileName)
          
-         # Remove the code blocks from the response for display
-         # Process spans in reverse order to maintain correct indices
-         for (i in rev(seq_along(spans_to_remove))) {
-            span <- spans_to_remove[[i]]
-            before <- if (span$start > 1) substr(cleaned_response, 1, span$start - 1) else ""
-            after <- if (span$end < nchar(cleaned_response)) substr(cleaned_response, span$end + 1, nchar(cleaned_response)) else ""
-            cleaned_response <- paste0(before, after)
-         }
+         cleaned_response = sub(codeBlock, '', response, fixed = T)
       }
    }
    

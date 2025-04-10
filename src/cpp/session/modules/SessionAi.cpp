@@ -191,21 +191,6 @@ bool isLocalURL(const std::string& url,
    return false;
 }
 
-std::string normalizeHttpdSearchContent(const std::string& content)
-{
-   return boost::regex_replace(
-            content,
-            boost::regex("(The search string was <b>\")(.*)(\"</b>)"),
-            [](const boost::smatch& m)
-   {
-      std::string query = m[2];
-      if (query.find('<') != std::string::npos)
-         query = string_utils::htmlEscape(query);
-
-      return m[1] + query + m[3];
-   });
-}
-
 template <typename F>
 bool isHttpdErrorPayload(SEXP payloadSEXP, F accessor)
 {
@@ -217,16 +202,6 @@ bool isHttpdErrorPayload(SEXP payloadSEXP, F accessor)
    }
 
    return false;
-}
-
-bool isHttpdErrorPayload(SEXP payloadSEXP)
-{
-   switch (TYPEOF(payloadSEXP))
-   {
-   case STRSXP : return isHttpdErrorPayload(payloadSEXP, STRING_ELT);
-   case VECSXP : return isHttpdErrorPayload(payloadSEXP, VECTOR_ELT);
-   default     : return false;
-   }
 }
 
 // Filter for HTML content
@@ -332,15 +307,6 @@ void setDynamicContentResponse(const std::string& content,
       pResponse->setBody(content, filter);
    }
 }
-
-void setDynamicContentResponse(const std::string& content,
-                               const http::Request& request,
-                               http::Response* pResponse)
-{
-   http::NullOutputFilter nullFilter;
-   setDynamicContentResponse(content, request, nullFilter, pResponse);
-}
-
 // Function to handle AI requests, specifically for Wikipedia
 void handleAiRequest(const http::Request& request, http::Response* pResponse)
 {
