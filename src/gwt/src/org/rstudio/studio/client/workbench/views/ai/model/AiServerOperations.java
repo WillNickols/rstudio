@@ -58,4 +58,6 @@ public interface AiServerOperations
    void showVignette(String topic, String pkgName);
 
    void followAiTopic(String url, ServerRequestCallback<JsArrayString> requestCallback);
+   
+   void clearAiConversation(ServerRequestCallback<Void> requestCallback);
 }

@@ -3119,13 +3119,13 @@ public interface CmdConstants extends Constants {
     String aiPopoutDesc();
     
     // refreshAi
-    @DefaultStringValue("Refresh Ai Topic") // $NON-NLS-1$
+    @DefaultStringValue("New conversation") // $NON-NLS-1$
     String refreshAiLabel();
     @DefaultStringValue("") // $NON-NLS-1$
     String refreshAiButtonLabel();
-    @DefaultStringValue("Refresh") // $NON-NLS-1$
+    @DefaultStringValue("New") // $NON-NLS-1$
     String refreshAiMenuLabel();
-    @DefaultStringValue("Refresh topic") // $NON-NLS-1$
+    @DefaultStringValue("New conversation") // $NON-NLS-1$
     String refreshAiDesc();
     
     // tutorialPopout

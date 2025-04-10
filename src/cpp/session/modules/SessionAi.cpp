@@ -702,6 +702,18 @@ SEXP rs_previewRd(SEXP rdFileSEXP)
    return R_NilValue;
 }
 
+// Function to clear AI conversation JSON when refresh button is clicked
+Error clearAiConversation(const json::JsonRpcRequest& request,
+                         json::JsonRpcResponse* pResponse)
+{
+   // Call the R function to clear the conversation
+   Error error = r::exec::RFunction(".rs.clear_ai_conversation").call();
+   if (error)
+      LOG_ERROR(error);
+   
+   return Success();
+}
+
 } // anonymous namespace
    
 Error initialize()
@@ -714,8 +726,10 @@ Error initialize()
    using namespace module_context;
    using namespace rstudio::r::function_hook;
    
+   // Register handler for clearing conversation on refresh
    ExecBlock initBlock;
    initBlock.addFunctions()
+      (bind(module_context::registerRpcMethod, "clear_ai_conversation", clearAiConversation))
       (bind(registerRBrowseUrlHandler, handleLocalHttpUrl))
       (bind(registerUriHandler, kAiLocation, handleAiRequest))
       (bind(registerUriHandler, kPythonLocation, handlePythonAiRequest))

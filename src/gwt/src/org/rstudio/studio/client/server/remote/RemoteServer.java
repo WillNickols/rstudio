@@ -1732,6 +1732,12 @@ public class RemoteServer implements Server
                   requestCallback);
    }
    
+   @Override
+   public void clearAiConversation(ServerRequestCallback<java.lang.Void> requestCallback)
+   {
+      sendRequest(RPC_SCOPE, CLEAR_AI_CONVERSATION, requestCallback);
+   }
+
    public void search(String query,
                       ServerRequestCallback<JsArrayString> requestCallback)
    {
@@ -7499,6 +7505,8 @@ public class RemoteServer implements Server
    private static final String QUARTO_SERVE = "quarto_serve";
    private static final String QUARTO_SERVE_RENDER = "quarto_serve_render";
    private static final String QUARTO_CREATE_PROJECT = "quarto_create_project";
+
+   private static final String CLEAR_AI_CONVERSATION = "clear_ai_conversation";
 
    private static class PendingRpcRequest 
    {

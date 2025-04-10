@@ -98,65 +98,229 @@ options(ai_type = "html")
    list(payload, "text/html", character(), 404)
 })
 
+# Add a new JSON RPC handler for clearing the conversation data when refresh is clicked
+.rs.addJsonRpcHandler("clear_ai_conversation", function()
+{
+   # Path for our JSON file
+   aiDir <- file.path(.libPaths()[1], "ai", "doc", "html")
+   jsonFilePath <- file.path(aiDir, "conversation.json")
+   
+   # Create the directory if it doesn't exist
+   if (!dir.exists(aiDir)) {
+      dir.create(aiDir, recursive = TRUE, showWarnings = FALSE)
+   }
+   
+   # Create initial empty conversation structure
+   initialJson <- list(
+      messages = data.frame(
+         type = character(),
+         text = character(),
+         timestamp = character(),
+         stringsAsFactors = FALSE
+      )
+   )
+   
+   # Write the empty JSON structure to the file
+   writeLines(jsonlite::toJSON(initialJson, pretty = TRUE), jsonFilePath)
+   
+   # Update the HTML display
+   .rs.updateConversationDisplay()
+   
+   # Return success
+   return(TRUE)
+})
+
+# Add the exported R function that will be called from C++
+.rs.addFunction("clear_ai_conversation", function()
+{
+   # Path for our JSON file
+   aiDir <- file.path(.libPaths()[1], "ai", "doc", "html")
+   jsonFilePath <- file.path(aiDir, "conversation.json")
+   
+   # Create the directory if it doesn't exist
+   if (!dir.exists(aiDir)) {
+      dir.create(aiDir, recursive = TRUE, showWarnings = FALSE)
+   }
+   
+   # Create initial empty conversation structure
+   initialJson <- list(
+      messages = data.frame(
+         type = character(),
+         text = character(),
+         timestamp = character(),
+         stringsAsFactors = FALSE
+      )
+   )
+   
+   # Write the empty JSON structure to the file
+   writeLines(jsonlite::toJSON(initialJson, pretty = TRUE), jsonFilePath)
+   
+   # Update the HTML display
+   .rs.updateConversationDisplay()
+   
+   # Return success
+   return(TRUE)
+})
+
 # Environment for topics
 .rs.setVar("topicsEnv", new.env(parent = emptyenv()))
+
+# Helper function to convert JSON to string safely
+.rs.addFunction("jsontostr", function(obj) {
+   jsonlite::toJSON(obj, auto_unbox = TRUE, pretty = TRUE)
+})
+
+# Function to update the conversation display HTML
+.rs.addFunction("updateConversationDisplay", function() {
+   # Path for our JSON and display files
+   aiDir <- file.path(.libPaths()[1], "ai", "doc", "html")
+   jsonFilePath <- file.path(aiDir, "conversation.json")
+   displayFilePath <- file.path(aiDir, "conversation_display.html")
+   
+   # Read the current conversation
+   conversation <- tryCatch({
+      jsonlite::fromJSON(jsonFilePath)
+   }, error = function(e) {
+      list(messages = data.frame(
+         type = character(),
+         text = character(),
+         timestamp = character(),
+         stringsAsFactors = FALSE
+      ))
+   })
+   
+   # Create HTML to display the conversation
+   html <- paste0(
+      "<html><head><title>Conversation</title>",
+      "<style>",
+      "body { font-family: sans-serif; margin: 20px; }",
+      ".message { margin-bottom: 15px; padding: 10px; font-family: sans-serif; font-size: 14px; }",
+      ".user { background-color: #e6e6e6; text-align: right; border-radius: 5px; display: inline-block; float: right; max-width: 100%; word-wrap: break-word; }",
+      ".assistant { background-color: transparent; text-align: left; word-wrap: break-word; max-width: 100%; }",
+      ".user-container { width: 100%; overflow: hidden; text-align: right; }",
+      ".text { font-family: sans-serif; font-size: 14px; line-height: 1.4; }",
+      "</style></head><body>",
+      "<h2>Conversation</h2>"
+   )
+   
+   # Handle the messages data frame - check that it's a data frame and has rows
+   if (!is.null(conversation$messages) && is.data.frame(conversation$messages) && nrow(conversation$messages) > 0) {
+      for (i in 1:nrow(conversation$messages)) {
+         msgType <- conversation$messages$type[i]
+         msgText <- conversation$messages$text[i]
+         
+         if (is.null(msgType) || is.na(msgType)) msgType <- "unknown"
+         if (is.null(msgText) || is.na(msgText)) msgText <- "(no text)"
+         
+         msgClass <- if (msgType == "user") "user" else "assistant"
+         
+         if (msgType == "user") {
+            html <- paste0(html, 
+               '<div class="user-container">',
+               sprintf('<div class="message %s">', msgClass),
+               sprintf('<div class="text">%s</div>', msgText),
+               '</div></div>'
+            )
+         } else {
+            html <- paste0(html, 
+               sprintf('<div class="message %s">', msgClass),
+               sprintf('<div class="text">%s</div>', msgText),
+               '</div>'
+            )
+         }
+      }
+   }
+   
+   html <- paste0(html, "</body></html>")
+   
+   # Write the HTML to the display file
+   writeLines(html, displayFilePath)
+   
+   return(TRUE)
+})
 
 # Search handler - this is the function that will handle Wikipedia searches
 .rs.addJsonRpcHandler("search", function(query)
 {
-   # First, check and see if we can get an exact match in R help
-   exactMatch <- help(query, help_type = "html")
-   if (length(exactMatch) == 1)
-   {
-      print(exactMatch)
-      return()
-   }
-   
-   # Prepare to search Wikipedia
-   # Create a directory for storing Wikipedia HTML in the ai/doc/html path
+   # Create a directory for storing the JSON file in the ai/doc/html path
    aiDir <- file.path(.libPaths()[1], "ai", "doc", "html")
    dir.create(aiDir, recursive = TRUE, showWarnings = FALSE)
    
-   # Format Wikipedia URL for the query
-   wikiUrl <- sprintf("https://en.wikipedia.org/wiki/%s", utils::URLencode(query, reserved = TRUE))
+   # Path for our JSON file
+   jsonFilePath <- file.path(aiDir, "conversation.json")
    
-   # Download Wikipedia content
-   tryCatch({
-      # Download the Wikipedia page content
-      wikiContent <- suppressWarnings(readLines(wikiUrl, warn = FALSE))
-      wikiContent <- paste(wikiContent, collapse = "\n")
-      
-      # Create a sanitized filename
-      safeQuery <- gsub("[^a-zA-Z0-9]", "_", query)
-      filePath <- file.path(aiDir, paste0(safeQuery, ".html"))
-      writeLines(wikiContent, filePath)
-      
-      # Return the path to the downloaded file relative to ai/doc/html
-      return(sprintf("ai/doc/html/%s.html", safeQuery))
+   # Create the JSON file if it doesn't exist
+   if (!file.exists(jsonFilePath)) {
+      # Create initial empty conversation structure
+      initialJson <- list(
+         messages = data.frame(
+            type = character(),
+            text = character(),
+            timestamp = character(),
+            stringsAsFactors = FALSE
+         )
+      )
+      writeLines(.rs.jsontostr(initialJson), jsonFilePath)
+   }
+   
+   # Read the current conversation
+   conversation <- tryCatch({
+      jsonlite::fromJSON(jsonFilePath)
    }, error = function(e) {
-      # If Wikipedia search fails, fall back to original search
-      status <- .rs.tryCatch(grep(query, "", perl = TRUE))
-      if (inherits(status, "error"))
-         query <- .rs.escapeForRegex(query)
-      
-      fmt <- "ai/doc/html/Search?pattern=%s&title=1&keyword=1&alias=1"
-      sprintf(fmt, utils::URLencode(query, reserved = TRUE))
+      list(messages = data.frame(
+         type = character(),
+         text = character(),
+         timestamp = character(),
+         stringsAsFactors = FALSE
+      ))
    })
+   
+   # Add the new user message as a data frame row
+   newMessage <- data.frame(
+      type = "user",
+      text = query,
+      timestamp = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+      stringsAsFactors = FALSE
+   )
+   
+   # Append the new message
+   if (is.null(conversation$messages) || !is.data.frame(conversation$messages) || nrow(conversation$messages) == 0) {
+      conversation$messages <- newMessage
+   } else {
+      conversation$messages <- rbind(conversation$messages, newMessage)
+   }
+   
+   # Add the system's echo response
+   systemResponse <- data.frame(
+      type = "assistant",
+      text = query,  # Echo the same text back
+      timestamp = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+      stringsAsFactors = FALSE
+   )
+   
+   # Append the system response
+   conversation$messages <- rbind(conversation$messages, systemResponse)
+   
+   # Save the updated conversation
+   writeLines(jsonlite::toJSON(conversation, pretty = TRUE), jsonFilePath)
+   
+   # Update the HTML display
+   .rs.updateConversationDisplay()
+   
+   # Return the path to the display file
+   return(sprintf("ai/doc/html/conversation_display.html"))
 })
 
 # Handle links to Wikipedia topics
 .rs.addJsonRpcHandler("follow_ai_topic", function(url)
 {
-   if (grepl("\\.html$", url)) {
-      # Extract the filename from the URL
-      topic <- sub("^.*/([^/]+)\\.html$", "\\1", url)
-      
-      # Return the full path to the file
+   # Check if this is our conversation display
+   if (grepl("conversation_display\\.html$", url)) {
       aiDir <- file.path(.libPaths()[1], "ai", "doc", "html")
-      filePath <- file.path(aiDir, paste0(topic, ".html"))
+      displayFilePath <- file.path(aiDir, "conversation_display.html")
       
-      if (file.exists(filePath)) {
-         return(filePath)
+      if (file.exists(displayFilePath)) {
+         return(displayFilePath)
       }
    }
    
@@ -264,4 +428,48 @@ options(ai_type = "html")
    }
    
    paste(lines, collapse = "\n")
+})
+
+# Function to add AI responses to the conversation
+.rs.addJsonRpcHandler("add_ai_response", function(response)
+{
+   # Path for our JSON file
+   aiDir <- file.path(.libPaths()[1], "ai", "doc", "html")
+   jsonFilePath <- file.path(aiDir, "conversation.json")
+   
+   # Read the current conversation
+   conversation <- tryCatch({
+      jsonlite::fromJSON(jsonFilePath)
+   }, error = function(e) {
+      list(messages = data.frame(
+         type = character(),
+         text = character(),
+         timestamp = character(),
+         stringsAsFactors = FALSE
+      ))
+   })
+   
+   # Add the new AI response message as a data frame row
+   newMessage <- data.frame(
+      type = "assistant",
+      text = response,
+      timestamp = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+      stringsAsFactors = FALSE
+   )
+   
+   # Append the new message
+   if (is.null(conversation$messages) || nrow(conversation$messages) == 0) {
+      conversation$messages <- newMessage
+   } else {
+      conversation$messages <- rbind(conversation$messages, newMessage)
+   }
+   
+   # Save the updated conversation
+   writeLines(jsonlite::toJSON(conversation, pretty = TRUE), jsonFilePath)
+   
+   # Update the HTML display
+   .rs.updateConversationDisplay()
+   
+   # Return success
+   return(TRUE)
 })

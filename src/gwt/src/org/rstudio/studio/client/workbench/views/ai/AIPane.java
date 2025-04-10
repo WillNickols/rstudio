@@ -55,12 +55,19 @@ import org.rstudio.studio.client.common.GlobalDisplay;
 import org.rstudio.studio.client.common.GlobalDisplay.NewWindowOptions;
 import org.rstudio.studio.client.common.SimpleRequestCallback;
 import org.rstudio.studio.client.server.Server;
+import org.rstudio.studio.client.server.ServerError;
+import org.rstudio.studio.client.server.ServerRequestCallback;
+import org.rstudio.studio.client.server.Void;
+import org.rstudio.studio.client.server.VoidServerRequestCallback;
 import org.rstudio.studio.client.workbench.commands.Commands;
 import org.rstudio.studio.client.workbench.prefs.model.UserPrefs;
 import org.rstudio.studio.client.workbench.ui.WorkbenchPane;
 import org.rstudio.studio.client.workbench.views.console.events.SendToConsoleEvent;
 import org.rstudio.studio.client.workbench.views.ai.Ai.LinkMenu;
+import org.rstudio.studio.client.workbench.views.ai.model.Link;
 import org.rstudio.studio.client.workbench.views.ai.events.AiNavigateEvent;
+import org.rstudio.studio.client.workbench.views.ai.events.HasAiNavigateHandlers;
+import org.rstudio.studio.client.workbench.views.ai.model.AiServerOperations;
 import org.rstudio.studio.client.workbench.views.ai.model.VirtualHistory;
 import org.rstudio.studio.client.workbench.views.ai.search.AiSearch;
 
@@ -109,7 +116,8 @@ public class AiPane extends WorkbenchPane
                    GlobalDisplay globalDisplay,
                    Commands commands,
                    EventBus events,
-                   UserPrefs prefs)
+                   UserPrefs prefs,
+                   AiServerOperations server)
    {
       super(constants_.aiText(), events);
 
@@ -119,7 +127,7 @@ public class AiPane extends WorkbenchPane
       searchProvider_ = searchProvider;
       globalDisplay_ = globalDisplay;
       commands_ = commands;
-      server_ = RStudioGinjector.INSTANCE.getServer();
+      server_ = server;
 
       // init with a no-op timer
       popupTimer_ = new Timer()
@@ -145,7 +153,7 @@ public class AiPane extends WorkbenchPane
       frame_ = new RStudioThemedFrame(
          constants_.aiPaneTitle(),
          null,
-         RES.editorStyles().getText(),
+         RES.editorStyles().getText() + "\n body { font-size: 14px !important; font-family: sans-serif !important; }",
          null,
          false,
          true);
@@ -204,12 +212,12 @@ public class AiPane extends WorkbenchPane
       com.google.gwt.user.client.ui.SimplePanel searchContainer = new com.google.gwt.user.client.ui.SimplePanel();
       searchContainer.setWidget(searchWidgetWidget);
       searchContainer.setStyleName("rstudio-AiSearchContainer");
-      searchContainer.getElement().getStyle().setProperty("minHeight", "46px"); // 30px input + 8px padding top/bottom
+      searchContainer.getElement().getStyle().setProperty("minHeight", "60px"); // Increased from 46px to 60px
       searchContainer.getElement().getStyle().setProperty("height", "auto");
       searchContainer.getElement().getStyle().setProperty("display", "block");
       
       // Add the search container to the bottom with flexible height
-      mainPanel.addSouth(searchContainer, 46);
+      mainPanel.addSouth(searchContainer, 60); // Increased from 46 to 60
       
       // Create a resize handler to adjust the layout when the search widget resizes
       searchWidgetWidget.addHandler(new ResizeHandler() {
@@ -218,7 +226,7 @@ public class AiPane extends WorkbenchPane
             // Update container height to match content
             int contentHeight = searchWidgetWidget.getOffsetHeight();
             if (contentHeight > 0) {
-               int newHeight = Math.max(46, contentHeight);
+               int newHeight = Math.max(60, contentHeight);
                searchContainer.getElement().getStyle().setProperty("height", "auto");
                mainPanel.forceLayout();
             }
@@ -634,7 +642,7 @@ public class AiPane extends WorkbenchPane
 
                   // pkg might not be the actual package
                   // so we need to do the same as what the internal ai system would:
-                  server_.followAiTopic(url, new SimpleRequestCallback<JsArrayString>(){
+                  server_.followAiTopic(url, new ServerRequestCallback<JsArrayString>(){
 
                      @Override
                      public void onResponseReceived(JsArrayString files)
@@ -659,6 +667,12 @@ public class AiPane extends WorkbenchPane
                                  popup_.setPopupPositionAndShow(positioner);
                            }));
                         }
+                     }
+
+                     @Override
+                     public void onError(ServerError error)
+                     {
+                        // Handle error case
                      }
                   });
 
@@ -1101,9 +1115,24 @@ public class AiPane extends WorkbenchPane
    @Override
    public void refresh()
    {
-      String url = getUrl();
-      if (url != null)
-         setLocation(url, Point.create(0, 0));
+      // Call the server to clear the conversation JSON
+      server_.clearAiConversation(new ServerRequestCallback<java.lang.Void>() {
+         @Override
+         public void onResponseReceived(java.lang.Void response) {
+            // After clearing the JSON, refresh the page
+            String url = getUrl();
+            if (url != null)
+               setLocation(url, Point.create(0, 0));
+         }
+         
+         @Override
+         public void onError(ServerError error) {
+            // If there's an error, just proceed with refreshing the page
+            String url = getUrl();
+            if (url != null)
+               setLocation(url, Point.create(0, 0));
+         }
+      });
    }
 
    private WindowEx getContentWindow()
@@ -1232,29 +1261,35 @@ public class AiPane extends WorkbenchPane
          // Apply specific styles for textarea behavior
          textarea.style.width = "100%";
          textarea.style.height = "auto";
-         textarea.style.minHeight = "30px";
+         textarea.style.minHeight = "22px"; // Reduced minimum height
+         textarea.style.maxHeight = "100px"; // Add max height
          textarea.style.boxSizing = "border-box";
          textarea.style.resize = "none";
          textarea.style.overflow = "hidden";
          textarea.style.border = "none";
          textarea.style.outline = "none";
-         textarea.style.padding = "4px 10px";
+         textarea.style.padding = "4px 8px"; // Reduced padding
          textarea.style.display = "block";
+         textarea.style.marginBottom = "0px"; // Remove bottom margin
          
          // Make sure font matches exactly the input element and rest of the application
          var computedStyle = window.getComputedStyle(input);
          
-         // If the input doesn't have explicit font settings, try to get them from parent elements
+         // Try to get font properties from the input or its parent elements
          var fontFamily = computedStyle.fontFamily;
-         var fontSize = computedStyle.fontSize;
-         var fontWeight = computedStyle.fontWeight;
+         var fontSize = computedStyle.fontSize || "14px";
+         var fontWeight = computedStyle.fontWeight || "normal";
          
-         if (fontFamily === "" || fontFamily === "inherit") {
+         // If the font family is empty, try to get it from parent elements
+         if (!fontFamily || fontFamily === "" || fontFamily === "inherit" || fontFamily === "monospace") {
             // Try to get font from parent
             var parent = input.parentElement;
             while (parent) {
                var parentStyle = window.getComputedStyle(parent);
-               if (parentStyle.fontFamily && parentStyle.fontFamily !== "" && parentStyle.fontFamily !== "inherit") {
+               if (parentStyle.fontFamily && 
+                  parentStyle.fontFamily !== "" && 
+                  parentStyle.fontFamily !== "inherit" &&
+                  parentStyle.fontFamily !== "monospace") {
                   fontFamily = parentStyle.fontFamily;
                   break;
                }
@@ -1262,12 +1297,17 @@ public class AiPane extends WorkbenchPane
             }
          }
          
+         // If we still don't have a good font family, use sans-serif
+         if (!fontFamily || fontFamily === "" || fontFamily === "inherit" || fontFamily === "monospace") {
+            fontFamily = "sans-serif";
+         }
+         
          // Apply all font properties
          textarea.style.fontFamily = fontFamily;
          textarea.style.fontSize = fontSize;
          textarea.style.fontWeight = fontWeight;
-         textarea.style.fontStyle = computedStyle.fontStyle;
-         textarea.style.letterSpacing = computedStyle.letterSpacing;
+         textarea.style.fontStyle = computedStyle.fontStyle || "normal";
+         textarea.style.letterSpacing = computedStyle.letterSpacing || "normal";
          textarea.style.lineHeight = computedStyle.lineHeight || "1.4";
          textarea.style.color = computedStyle.color;
          textarea.style.backgroundColor = "transparent";
@@ -1283,7 +1323,7 @@ public class AiPane extends WorkbenchPane
          // Auto-resize function
          var resizeTextarea = function() {
             textarea.style.height = "auto"; // Reset height to recalculate
-            var newHeight = Math.max(30, textarea.scrollHeight);
+            var newHeight = Math.max(22, textarea.scrollHeight); // Reduced from 30px
             textarea.style.height = newHeight + "px";
             
             // Adjust parent containers
@@ -1294,7 +1334,19 @@ public class AiPane extends WorkbenchPane
                    parent.classList.contains("searchBoxContainer") || 
                    parent.classList.contains("searchBoxContainer2")) {
                   parent.style.height = "auto";
-                  parent.style.minHeight = "30px";
+                  parent.style.minHeight = "22px"; // Reduced from 30px
+                  // Remove bottom margin to prevent cutoff
+                  parent.style.marginBottom = "0px";
+               }
+               if (parent.classList.contains("rstudio-AiSearchContainer")) {
+                  // Ensure the outer container has enough bottom padding
+                  if (!parent.style.paddingBottom || parseInt(parent.style.paddingBottom) < 10) {
+                     parent.style.paddingBottom = "10px"; // Reduced from 12px
+                  }
+                  // Ensure enough top padding as well
+                  if (!parent.style.paddingTop || parseInt(parent.style.paddingTop) < 6) {
+                     parent.style.paddingTop = "6px"; // Reduced from 8px
+                  }
                }
                parent = parent.parentElement;
             }
@@ -1435,7 +1487,7 @@ public class AiPane extends WorkbenchPane
    private static int popoutCount_ = 0;
    private SearchDisplay searchWidget_;
    private static final AiConstants constants_ = GWT.create(AiConstants.class);
-   private Server server_;
+   private AiServerOperations server_;
    HyperlinkPopupPanel popup_;
    Timer popupTimer_;
    boolean popupCancelled_;

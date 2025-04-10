@@ -17,6 +17,17 @@
 @external chunk, source, output, warning, error, message;
 @external std, opt, hl;
 
+/* Set consistent font size for all content in the AI pane */
+body {
+   font-size: 14px !important;
+   font-family: monospace !important;
+}
+
+pre, code {
+   font-size: 14px !important;
+   font-family: monospace !important;
+}
+
 /* Ugly hack, but we don't have a better way of targeting this element. */
 p + div[style="text-align: center;"]
 {
